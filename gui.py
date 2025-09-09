@@ -105,9 +105,7 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
         global PRESS_START
         PRESS_START = time.time()
 
-    root.bind("<ButtonPress-1>", lambda event: set_press_start())
-    root.bind("<ButtonRelease-1>", lambda event:
-              handle_interaction(root, frame, style, do_post))
+    root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
 
 def scale_font(root: tk.Tk, base_size: int) -> int:
     """
@@ -208,15 +206,8 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         do_post (bool): whether or not to post to the Slack channel
     """
     def worker():
-        current_time = time.time()
-
-        if current_time - PRESS_START >= 3:
-            root.quit()  # exit cleanly on long press
-            return
-
         message_id, channel_id = slack.handle_interaction(
-            slack.lambda_client, do_post,
-            (current_time - PRESS_START) if PRESS_START else 0
+            slack.lambda_client, do_post, 0
         )
 
         def gui_update():
@@ -226,7 +217,6 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                     widget.place_forget()
 
                 root.unbind("<ButtonPress-1>")
-                root.unbind("<ButtonRelease-1>")
 
                 display_post_interaction(root, frame, style, do_post)
 
