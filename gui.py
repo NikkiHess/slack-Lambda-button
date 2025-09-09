@@ -221,6 +221,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                     widget.place_forget()
 
                 root.unbind("<ButtonPress-1>")
+                bind_presses(root, frame, style, False)
 
                 display_post_interaction(root, frame, style, do_post)
 
@@ -230,7 +231,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
 
                 if is_simpleaudio_installed:
                     INTERACT_SOUND.play()
-            else:
+            elif do_post:
                 ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.",
                                             style="Escape.TLabel")
                 ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
