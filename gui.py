@@ -100,12 +100,13 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
         do_post (bool): whether to post to Slack
     """
 
-    # sets the press_start time to be used to determine press length
-    def set_press_start():
-        global PRESS_START
-        PRESS_START = time.time()
+    # long presses exit the app
+    def handle_long_press():
+        if time.time() - PRESS_START >= 3:
+            exit(0)
 
     root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
+    root.bind("<ButtonRelease-1>", lambda event: handle_long_press())
 
 def scale_font(root: tk.Tk, base_size: int) -> int:
     """
@@ -205,9 +206,12 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
         style (ttk.Style): the style manager for our window
         do_post (bool): whether or not to post to the Slack channel
     """
+    global PRESS_START
+    PRESS_START = time.time()
+
     def worker():
         message_id, channel_id = slack.handle_interaction(
-            slack.lambda_client, do_post, 0
+            slack.lambda_client, do_post
         )
 
         def gui_update():
@@ -555,7 +559,7 @@ def display_gui() -> None:
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_42)
 
     # set up the actual items in the display
-    escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
+    escape_label = ttk.Label(display_frame, text="Press escape or long press to exit", style="Escape.TLabel")
     escape_label.place(relx=0.99, rely=0.99, anchor="se")
 
     # Fade the escape label out
@@ -573,6 +577,7 @@ def display_gui() -> None:
 
 if __name__ == "__main__":
     with open("log.txt", "w") as sys.stdout:
+        slack.get_datetime(True)
         setup_logging()
 
         display_gui()

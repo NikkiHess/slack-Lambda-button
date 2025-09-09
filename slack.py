@@ -99,12 +99,18 @@ def get_datetime(update_system_time: bool = False) -> str | None:
     formatted_time = None
     try:
         response = requests.get(
-            "http://worldtimeapi.org/api/timezone/America/Detroit",
+            "https://timeapi.io/api/time/current/zone?timeZone=America%2FDetroit",
             timeout=3
         )
         response.raise_for_status() # prevent uncatchable errors
         response_data = response.json()
-        iso_datetime = response_data["datetime"]
+        iso_datetime = response_data["dateTime"]
+
+        if "." in iso_datetime:
+            date_part, frac = iso_datetime.split(".")
+            frac = frac[:6]  # keep only first 6 digits
+            iso_datetime = f"{date_part}.{frac}"
+
         current_time = datetime.fromisoformat(iso_datetime)
         formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
 
@@ -120,7 +126,7 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
     return formatted_time
 
-def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_length: float = 0) -> str | None:
+def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
@@ -133,7 +139,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
         the posted message id, if there is one OR None
     """
 
-    press_type = "LONG" if press_length > 2 else "SINGLE"
+    press_type = "SINGLE"
 
     # set up Google Sheets and grab the config
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_config")
@@ -141,15 +147,10 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
 
-    # device_mac = device_config[2]
     device_location = device_config[3]
-    # device_function = device_config[5]
     device_message = device_config[4]
     device_rate_limit = int(device_config[7])
     device_channel_id = device_config[8]
-
-    # get the time but nice looking
-    fancy_time = get_datetime(True)
 
     # handle timestamp, check for rate limit
     last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
@@ -165,18 +166,8 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
     else:
         final_message = device_message
 
-    # Check and assign device_location
-    if device_location is None or device_location == "":
-        final_location = "Unknown Location"
-    else:
-        final_location = device_location
-
     # handle long button presses by sending a test message
-    if press_type == "LONG":
-        final_message = f"Testing button at {final_location}"
-        final_message += f"\nDevice ID: {device_id}\nTimestamp: {fancy_time}"
-    else:
-        final_message += "\n*To respond, reply to this message in a thread within 3 minutes*\n*To resolve, react with :white_check_mark: or :+1:*"
+    final_message += "\n*To respond, reply to this message in a thread within 3 minutes*\n*To resolve, react with :white_check_mark: or :+1:*"
 
     print(f"\nINFO\n--------\nRetrieved message: {final_message}")
 
@@ -193,5 +184,4 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True, press_len
     return None, None
 
 if __name__ == "__main__":
-    # testing
-    handle_interaction(lambda_client, do_post = True, press_length = 1)
+    print(get_datetime(True))
