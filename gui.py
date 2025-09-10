@@ -577,8 +577,7 @@ def display_gui() -> None:
     root.mainloop()
 
 if __name__ == "__main__":
-    with open("log.txt", "w") as sys.stdout:
-        slack.get_datetime(True)
-        setup_logging()
+    slack.get_datetime(True)
+    setup_logging()
 
-        display_gui()
+    display_gui()
