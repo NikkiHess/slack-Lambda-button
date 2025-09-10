@@ -287,7 +287,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 		index_dict["index"] = last_row
 		index_dict["expiry"] = time.time() + CACHE_COOLDOWN
 
-		print(f"First empty row for spreadsheet {spreadsheet_id} is {last_row}")
+		# print(f"First empty row for spreadsheet {spreadsheet_id} is {last_row}")
 
 	return last_row # Return the number of non-empty rows
 		
@@ -328,7 +328,7 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 		.execute()
 	)
 
-	print(f"{result.get('updatedCells')} cells added in row {next_row}: {cells}")
+	print(f"{result.get('updatedCells')} cells added in row {next_row} of spreadsheet {spreadsheet_id}: {cells}")
 	return result
 
 def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row: int = 1,

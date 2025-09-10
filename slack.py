@@ -157,10 +157,10 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
     else:
         final_message = device_message
 
+    print(f"Message retrieved from config: {final_message}")
+
     # handle long button presses by sending a test message
     final_message += "\n*To respond, reply to this message in a thread within 3 minutes*\n*To resolve, react with :white_check_mark: or :+1:*"
-
-    print(f"\nMESSAGE\n--------\n{final_message}")
 
     # if we post to Slack, we need to go through AWS and return a message/channel id
     if do_post:
@@ -170,7 +170,6 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
 
         return message_id, channel_id
     # else not needed here cuz return
-    print(f"\nMESSAGE\n--------\n{final_message}")
 
     return None, None
 

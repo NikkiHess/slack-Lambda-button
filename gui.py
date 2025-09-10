@@ -544,14 +544,7 @@ def display_gui() -> None:
     style = ttk.Style()
 
     # bind keys/buttons
-    def safe_exit(event=None):
-        try:
-            root.quit() # stop mainloop 
-            root.destroy() # close window
-        except tk.TclError:
-            pass # ignore errors
-
-    root.bind("<Escape>", lambda event: safe_exit)
+    root.bind("<Escape>", lambda event: exit(0))
     bind_presses(root, display_frame, style, do_post)
 
     # if is_raspberry_pi:
@@ -582,6 +575,8 @@ def display_gui() -> None:
 
     # run
     root.mainloop()
+
+    print("Running TKinter mainloop...")
 
 if __name__ == "__main__":
     print("Starting slack-Lambda-button gui...")

@@ -137,8 +137,6 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
         if messages:
             message = messages[0] # get the first item
 
-            print(message)
-
             # process the message
             message_body = message["Body"]
             message_body = json.loads(message_body) # load into JSON
