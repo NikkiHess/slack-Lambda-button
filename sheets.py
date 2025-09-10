@@ -192,7 +192,7 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 
 	if not response["trashed"]:
 		if cached_contents is not None and contents_expiry > time.time():
-			print(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
+			# print(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
 			spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
 		else:
 			spreadsheet = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
@@ -223,7 +223,7 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 	emptiness_expiry = cached_spreadsheet.get("emptiness", {}).get("expiry") if cached_spreadsheet else None
 
 	if cached_emptiness is not None and emptiness_expiry > time.time():
-		print(f"Cached value found for spreadsheet emptiness: {cached_emptiness}")
+		# print(f"Cached value found for spreadsheet emptiness: {cached_emptiness}")
 		return cached_emptiness
 	else:
 		try:
@@ -266,7 +266,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 	if cached_index is not None and index_expiry > time.time():
 		last_row = cached_index
 
-		print(f"Cached value found for spreadsheet {spreadsheet_id} first empty row: {last_row}")
+		# print(f"Cached value found for spreadsheet {spreadsheet_id} first empty row: {last_row}")
 	else:
 		range_ = "A:A"
 
@@ -355,7 +355,7 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 	region_expiry = cached_region.get("expiry") if cached_region else None
 
 	if cached_region is not None and region_expiry > time.time():
-		print(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id}.")
+		# print(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id}.")
 		return cached_region["contents"]
 	else:
 		result = (

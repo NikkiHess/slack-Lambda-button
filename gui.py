@@ -208,6 +208,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     """
     global PRESS_START
     PRESS_START = time.time()
+    root.unbind("<ButtonPress-1>")
 
     def worker():
         message_id, channel_id = slack.handle_interaction(
@@ -220,7 +221,6 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                 for widget in frame.winfo_children():
                     widget.place_forget()
 
-                root.unbind("<ButtonPress-1>")
                 bind_presses(root, frame, style, False)
 
                 display_post_interaction(root, frame, style, do_post)
@@ -544,7 +544,14 @@ def display_gui() -> None:
     style = ttk.Style()
 
     # bind keys/buttons
-    root.bind("<Escape>", lambda event: root.destroy())
+    def safe_exit(event=None):
+        try:
+            root.quit() # stop mainloop 
+            root.destroy() # close window
+        except tk.TclError:
+            pass # ignore errors
+
+    root.bind("<Escape>", lambda event: safe_exit)
     bind_presses(root, display_frame, style, do_post)
 
     # if is_raspberry_pi:
@@ -577,7 +584,8 @@ def display_gui() -> None:
     root.mainloop()
 
 if __name__ == "__main__":
-    slack.get_datetime(True)
+    print("Starting slack-Lambda-button gui...")
+    slack.get_datetime()
     setup_logging()
 
     display_gui()

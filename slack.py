@@ -85,12 +85,9 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
 
     return device_info
 
-def get_datetime(update_system_time: bool = False) -> str | None:
+def get_datetime() -> str | None:
     """
     Gets the current datetime as a beautifully formatted string
-
-    Args:
-        update_system_time (bool): whether to update the system time (Linux only)
 
     Returns:
         formatted_time (str | None): the formatted time string, if present
@@ -113,12 +110,6 @@ def get_datetime(update_system_time: bool = False) -> str | None:
 
         current_time = datetime.fromisoformat(iso_datetime)
         formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
-
-        # May be useful for keeping system time up-to-date throughout runtime
-        if update_system_time and is_raspberry_pi:
-            date_command = f"sudo date -s {iso_datetime}"
-            date_command = date_command.split()
-            check_call(date_command, stdout=DEVNULL, stderr=STDOUT)
     except (requests.exceptions.Timeout, json.decoder.JSONDecodeError, RequestException):
         # Fall back on system time, though potentially iffy
         now = datetime.now()
@@ -169,7 +160,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
     # handle long button presses by sending a test message
     final_message += "\n*To respond, reply to this message in a thread within 3 minutes*\n*To resolve, react with :white_check_mark: or :+1:*"
 
-    print(f"\nINFO\n--------\nRetrieved message: {final_message}")
+    print(f"\nMESSAGE\n--------\n{final_message}")
 
     # if we post to Slack, we need to go through AWS and return a message/channel id
     if do_post:
