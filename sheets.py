@@ -21,6 +21,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from nikki_util import timestamp_print
+
 # The only scope we need is drive.file so we can create files and interact with those files
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 CACHE = {}
@@ -31,7 +33,7 @@ try:
 	with open("config/credentials.json", "r", encoding="utf8") as file:
 		json.load(file)
 except (FileNotFoundError, json.JSONDecodeError):
-	print("config/credentials.json not found or incorrect, please download from Google Cloud...")
+	timestamp_print("config/credentials.json not found or incorrect, please download from Google Cloud...")
 	exit()
 
 def open_config(config_name: str) -> TextIO:
@@ -61,7 +63,7 @@ def open_config(config_name: str) -> TextIO:
 			}
 
 			json.dump(config_contents, config_file)
-		print(f"""{config_path} did not exist, one has been created for you. Please at least fill out the \"title\" field before running again. 
+		timestamp_print(f"""{config_path} did not exist, one has been created for you. Please at least fill out the \"title\" field before running again. 
 			  To use an existing spreadsheet, put the \"id\" field in as well from the Google Sheets URL.""")
 
 		exit(1)
@@ -74,7 +76,7 @@ def open_config(config_name: str) -> TextIO:
 		missing_fields = [field for field in required_fields if field not in config_data]
 
 		if missing_fields:
-			print(f"Config file is missing the following fields: {missing_fields}")
+			timestamp_print(f"Config file is missing the following fields: {missing_fields}")
 
 			# add missing fields
 			for field in missing_fields:
@@ -85,7 +87,7 @@ def open_config(config_name: str) -> TextIO:
 			json.dump(config_data, config_file)
 			config_file.truncate()
 
-			print("The missing fields have been added with default values.")
+			timestamp_print("The missing fields have been added with default values.")
 			exit(1)
 
 		# note to self: DON'T FORGET TO SEEK ;-;
@@ -115,19 +117,26 @@ def do_oauth_flow() -> Credentials:
 		if creds and creds.expired and creds.refresh_token:
 			try:
 				creds.refresh(Request())
+				timestamp_print("Google Cloud token refreshed.")
 			except RefreshError: # google RefreshError, need new token
+				timestamp_print("New Google Cloud token needed, running OAuth flow...")
+
 				os.remove("config/token.json") # clear expired token
 				flow = InstalledAppFlow.from_client_secrets_file(
 					"config/credentials.json", SCOPES
 				)
 				creds = flow.run_local_server(port=0)
 		else:
+			timestamp_print("New Google Cloud token needed, running OAuth flow...")
+
 			flow = InstalledAppFlow.from_client_secrets_file(
 				"config/credentials.json", SCOPES
 			)
 			creds = flow.run_local_server(port=0)
+		
 		# Save the credentials for the next run
 		with open("config/token.json", "w", encoding="utf8") as token:
+			timestamp_print("Writing new token to file...")
 			token.write(creds.to_json())
 
 	return creds
@@ -183,7 +192,7 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 			.get(fileId=spreadsheet_id, fields="trashed")
 		).execute()
 	except (HttpError):
-		print(f"Invalid spreadsheet id {spreadsheet_id}. Make sure you typed it correctly!")
+		timestamp_print(f"Invalid spreadsheet id {spreadsheet_id}. Make sure you typed it correctly!")
 		exit(1)
 
 	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
@@ -192,19 +201,19 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 
 	if not response["trashed"]:
 		if cached_contents is not None and contents_expiry > time.time():
-			# print(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
+			timestamp_print(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
 			spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
 		else:
 			spreadsheet = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-			print(f"Got existing spreadsheet with ID: {spreadsheet_id}")
-			print("Caching spreadsheet...")
+			timestamp_print(f"Got existing spreadsheet with ID: {spreadsheet_id}")
+			timestamp_print("Caching spreadsheet...")
 
             # we need to make sure the structure exists first by setting a default
 			cached_spreadsheet = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
 			cached_spreadsheet["contents"] = spreadsheet
 			cached_spreadsheet["contents_expiry"] = time.time() + CACHE_COOLDOWN
 	else:
-		print("Spreadsheet was trashed. We'll have to create a new one.")
+		timestamp_print("Spreadsheet was trashed. We'll have to create a new one.")
 
 	return spreadsheet
 
@@ -223,7 +232,7 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 	emptiness_expiry = cached_spreadsheet.get("emptiness", {}).get("expiry") if cached_spreadsheet else None
 
 	if cached_emptiness is not None and emptiness_expiry > time.time():
-		# print(f"Cached value found for spreadsheet emptiness: {cached_emptiness}")
+		timestamp_print(f"Cached value found for spreadsheet emptiness: {cached_emptiness}")
 		return cached_emptiness
 	else:
 		try:
@@ -241,7 +250,7 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 			emptiness_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("emptiness", {})
 			emptiness_dict["value"] = empty
 			emptiness_dict["expiry"] = time.time() + CACHE_COOLDOWN
-			print(f"Spreadsheet {spreadsheet_id} {'is' if empty else 'is not'} empty")
+			timestamp_print(f"Spreadsheet {spreadsheet_id} {'is' if empty else 'is not'} empty")
 
 			return empty
 		except HttpError as e:
@@ -258,6 +267,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 	Returns:
 	first_empty_row (int): the first empty row in the spreadsheet
 	"""
+	timestamp_print(f"Looking for first empty row in spreadsheet {spreadsheet_id}")
 
 	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
 	cached_index = cached_spreadsheet.get("first_empty_row", {}).get("index") if cached_spreadsheet else None
@@ -266,7 +276,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 	if cached_index is not None and index_expiry > time.time():
 		last_row = cached_index
 
-		# print(f"Cached value found for spreadsheet {spreadsheet_id} first empty row: {last_row}")
+		timestamp_print(f"Cached value found for spreadsheet {spreadsheet_id} first empty row: {last_row}")
 	else:
 		range_ = "A:A"
 
@@ -287,7 +297,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 		index_dict["index"] = last_row
 		index_dict["expiry"] = time.time() + CACHE_COOLDOWN
 
-		# print(f"First empty row for spreadsheet {spreadsheet_id} is {last_row}")
+		timestamp_print(f"First empty row for spreadsheet {spreadsheet_id} is {last_row}")
 
 	return last_row # Return the number of non-empty rows
 		
@@ -328,7 +338,7 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 		.execute()
 	)
 
-	print(f"{result.get('updatedCells')} cells added in row {next_row} of spreadsheet {spreadsheet_id}: {cells}")
+	timestamp_print(f"{result.get('updatedCells')} cells added in row {next_row} of spreadsheet {spreadsheet_id}: {cells}")
 	return result
 
 def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row: int = 1,
@@ -355,7 +365,7 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 	region_expiry = cached_region.get("expiry") if cached_region else None
 
 	if cached_region is not None and region_expiry > time.time():
-		# print(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id}.")
+		timestamp_print(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id}.")
 		return cached_region["contents"]
 	else:
 		result = (
@@ -373,7 +383,7 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 		except KeyError: # if the region is empty, there's no values
 			contents = []
 
-		print(f"Contents for region {sheets_range} retrieved. Caching...")
+		timestamp_print(f"Contents for region {sheets_range} retrieved. Caching...")
 
 		region_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("regions", {})
 		region_dict = region_dict.setdefault(sheets_range, {})
@@ -396,6 +406,8 @@ def setup_sheets(config_name: str):
 		spreadsheet: the spreadsheet gotten/created
 		spreadsheet_id: the spreadsheet's id, for convenience
 	"""
+
+	timestamp_print("Setting up Google Sheets...")
 
 	# Log in using OAuth
 	creds = do_oauth_flow()
@@ -428,9 +440,9 @@ def setup_sheets(config_name: str):
 
 			spreadsheet_id = config_data["id"]
 
-			print(f"Created new spreadsheet with ID: {spreadsheet_id}")
+			timestamp_print(f"Created new spreadsheet with ID: {spreadsheet_id}")
 	except HttpError as error:
-		print(error)
+		timestamp_print(error)
 	finally:
 		config_file.close()
 
@@ -440,15 +452,15 @@ if __name__ == "__main__":
 	_, sheets_service, drive_service, _, spreadsheet_id = setup_sheets("test")
 	get_spreadsheet(sheets_service, drive_service, spreadsheet_id)
 
-	print("")
+	timestamp_print("")
 	empty = is_spreadsheet_empty(sheets_service, spreadsheet_id)
 	empty = is_spreadsheet_empty(sheets_service, spreadsheet_id)
 
-	print("")
+	timestamp_print("")
 	first_empty = find_first_empty_row(sheets_service, spreadsheet_id)
 	first_empty = find_first_empty_row(sheets_service, spreadsheet_id)
 
-	print("")
+	timestamp_print("")
 	sheets_region = get_region(sheets_service, spreadsheet_id)
 	sheets_region = get_region(sheets_service, spreadsheet_id)
 	pass

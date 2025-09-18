@@ -19,10 +19,10 @@ try:
     with open("config/slack.json", "r", encoding="utf8") as file:
         CONFIG = json.load(file)
 except json.JSONDecodeError as e:
-    print(e)
+    timestamp_print(e)
 except FileNotFoundError as e:
     with open("config/slack.json", "x", encoding="utf8") as file:
-        print("config/slack.json not found, creating it for you...")
+        timestamp_print("config/slack.json not found, creating it for you...")
 
         defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
         json.dump(defaults, file)
@@ -39,10 +39,10 @@ try:
                 json.dump(CONFIG_DEFAULTS, write_file)
 except (FileNotFoundError, json.JSONDecodeError):
     with open("config/aws.json", "w+", encoding="utf8") as file:
-        print("config/aws.json not found or wrong, creating + populating defaults...")
+        timestamp_print("config/aws.json not found or wrong, creating + populating defaults...")
 
         json.dump(CONFIG_DEFAULTS, file)
-        print("Please fill out config/aws.json before running again.")
+        timestamp_print("Please fill out config/aws.json before running again.")
     exit()
 
 ACCESS_KEY = AWS_CONFIG["aws_access_key"]
@@ -78,12 +78,12 @@ def lambda_handler(event: dict, context: object):
     Returns:
         dict: a response object for the HTTP request
     """
-    print("full payload:", event)
+    timestamp_print("full payload:", event)
 
     event_body = event.get("body", "{}")
     if isinstance(event_body, str):
         event_body.replace("“", "\"").replace("”", "\"").replace("‘", "\"").replace("’", "\"").replace(",", "\"")
-    print(event_body)
+    timestamp_print(event_body)
 
     # slack sends body as a json-string, but our local test code doesn't
     # so let's handle both here
@@ -104,7 +104,7 @@ def lambda_handler(event: dict, context: object):
         event_body = event_body.get("event", "{}")
         event_type = event_body.get("type")
 
-    print("type:", event_type)
+    timestamp_print("type:", event_type)
     posted_message_id = None
     posted_message_channel = None
 
@@ -223,7 +223,7 @@ def get_location_last_message(channel_id: str, user_id: str, location: str):
     for message in messages:
         user = message.get("user")
         text = message.get("text")
-        print(text.split(" "))
+        timestamp_print(text.split(" "))
         # verify this is from the user specified and is in the location specified
         if user == user_id and location.strip() in text:
             return message
@@ -241,7 +241,7 @@ def handle_message_replied(event: dict, reply_text: str) -> bool:
     Returns:
         resolved (bool): whether the message was marked as resolved, for GUI
     """
-    print("Handling message...")
+    timestamp_print("Handling message...")
 
     channel_id = event.get("channel")
     thread_ts = event.get("thread_ts")
@@ -261,7 +261,7 @@ def handle_message_replied(event: dict, reply_text: str) -> bool:
 
     if thread_ts in pending_messages:
         if ":white_check_mark:" in reply_text or ":+1:" in reply_text:
-            print(f"Message thread {thread_ts} has received a resolving response. Marking as resolved.")
+            timestamp_print(f"Message thread {thread_ts} has received a resolving response. Marking as resolved.")
             pending_messages.remove(thread_ts)
 
             message_append(channel_id, thread_ts, "*(resolved)*")
@@ -282,7 +282,7 @@ def handle_message_replied(event: dict, reply_text: str) -> bool:
                 Subject="Message Reply Notification"
             )
     else:
-        print("Timestamp was not in pending messages")
+        timestamp_print("Timestamp was not in pending messages")
 
     return resolved
 
@@ -296,7 +296,7 @@ def handle_reaction_added(event: dict) -> bool:
     Returns:
         resolved (bool): whether the message was marked as resolved, for GUI
     """
-    print("Handling reaction added...")
+    timestamp_print("Handling reaction added...")
 
     reaction = event.get("reaction")
     item = event.get("item", {})
@@ -314,7 +314,7 @@ def handle_reaction_added(event: dict) -> bool:
         # no colons in Slack reaction values
         # +1 in reaction because there are multiple possible skin tones
         if reaction == "white_check_mark" or "+1" in reaction:
-            print(f"Message {message_id} has received a resolving reaction. Marking as resolved.")
+            timestamp_print(f"Message {message_id} has received a resolving reaction. Marking as resolved.")
             pending_messages.remove(message_id)
 
             message_append(channel_id, message_id, "*(resolved)*")
@@ -332,9 +332,9 @@ def handle_reaction_added(event: dict) -> bool:
                 Subject="Message Resolved Notification"
             )
         else:
-            print("Reaction was not white_check_mark or +1")
+            timestamp_print("Reaction was not white_check_mark or +1")
     else:
-        print("Timestamp was not in pending messages")
+        timestamp_print("Timestamp was not in pending messages")
 
     return resolved
 
@@ -403,7 +403,7 @@ def message_append(channel_id: str, ts: str, to_append: str):
     if not response_data.get("ok"):
         raise RuntimeError(f"Error editing message: {response_data['error']}")
 
-    print(f"Message with ID {ts} edited successfully")
+    timestamp_print(f"Message with ID {ts} edited successfully")
 
     return response_data
 
@@ -428,14 +428,14 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
 
     last_message = get_location_last_message(channel_id, get_bot_user_id(), location)
     if last_message:
-        print("Last message found: ", last_message["ts"])
+        timestamp_print("Last message found: ", last_message["ts"])
         last_message_time = float(last_message["ts"])
         current_time = time.time()
 
         # if the difference between this message's time and 
         # the last message's is less than the cooldown, don't post
         if last_message_time and current_time - last_message_time <= POST_COOLDOWN:
-            print("Posting messages too fast! Rate limit applied.")
+            timestamp_print("Posting messages too fast! Rate limit applied.")
             return "N/A", "N/A"
 
     # 10 second timeout
@@ -451,7 +451,7 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
     message_to_channel[message_id] = channel_id
     message_to_device_id[message_id] = device_id
 
-    print(f"Message posted with ID: {message_id}")
+    timestamp_print(f"Message posted with ID: {message_id}")
 
     return message_id, channel_id
 
@@ -485,7 +485,7 @@ def mark_message_timedout(channel_id: str, message_id: str):
         pending_messages.remove(message_id)
         message_append(channel_id, message_id, "*(timed out)*")
 
-        print(f"Message {message_id} has timed out")
+        timestamp_print(f"Message {message_id} has timed out")
 
 def mark_message_replied(channel_id: str, message_id: str):
     """
@@ -500,7 +500,7 @@ def mark_message_replied(channel_id: str, message_id: str):
                 or get_message_content(channel_id, message_id).endswith("*(timed out)*")):
             message_append(channel_id, message_id, "*(replied)*")
 
-        print(f"Message {message_id} has been marked as replied")
+        timestamp_print(f"Message {message_id} has been marked as replied")
 
 if __name__ == "__main__":
     # Run test
@@ -508,9 +508,9 @@ if __name__ == "__main__":
         with open("aws_json/test_post.json", "r", encoding="utf8") as test_file:
             test_event = json.load(test_file)
             response = lambda_handler(test_event, None)
-            print("Response:", response)
+            timestamp_print("Response:", response)
     except FileNotFoundError as e:
-        print("test_post.json not found.")
+        timestamp_print("test_post.json not found.")
     except json.JSONDecodeError as e:
-        print("Error decoding test_post.json:", e)
+        timestamp_print("Error decoding test_post.json:", e)
     

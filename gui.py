@@ -7,13 +7,14 @@ Author:
 Nikki Hess - nkhess@umich.edu
 """
 
+from nikki_util import timestamp_print
+
 import time
 
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 
-import sys
 import threading # for sqs polling
 
 from PIL import Image, ImageTk
@@ -22,13 +23,12 @@ is_simpleaudio_installed = True
 try:
     import simpleaudio as sa
 except ImportError as e:
-    print("WARNING: SimpleAudio is not installed, audio will not play")
+    timestamp_print("WARNING: SimpleAudio is not installed, audio will not play")
     is_simpleaudio_installed = False
 
 import slack
 import aws
 import sheets
-import auto_updater
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
@@ -505,9 +505,9 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
                    label, start_color, end_color, current_step,
                    fade_duration_ms)
 
-def setup_logging():
+def setup_google_sheets_logging():
     """
-    Runs the sheets function to set up logging,
+    Runs the sheets function to set up Google Sheets logging,
     then sets the globals LOGGING_SHEETS_SERVICE + SPREADSHEET_ID
     """
     global LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID, CONFIG_SHEETS_SERVICE
@@ -567,20 +567,13 @@ def display_gui() -> None:
     root.after(escape_display_period_ms, fade_label, root,
                escape_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
 
-    # run the auto updater
-    interval_seconds = 15 * 60 # every 15 minutes
-
-    thread = threading.Thread(target=auto_updater.do_auto_update, args=(interval_seconds,), daemon=True)
-    thread.start()
-
     # run
     root.mainloop()
 
-    print("Running TKinter mainloop...")
+    timestamp_print("Running TKinter mainloop...")
 
 if __name__ == "__main__":
-    print("Starting slack-Lambda-button gui...")
-    slack.get_datetime()
-    setup_logging()
+    timestamp_print("Starting slack-Lambda-button gui...")
+    setup_google_sheets_logging()
 
     display_gui()

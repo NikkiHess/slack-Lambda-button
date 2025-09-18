@@ -13,14 +13,11 @@ import time
 
 from typing import List
 
-from datetime import datetime
-from subprocess import DEVNULL, STDOUT, check_call
-import requests
-from requests.exceptions import RequestException
 import boto3
 
 import sheets
 import aws
+from nikki_util import timestamp_print
 
 lambda_client, sqs_client = aws.setup_aws()
 is_raspberry_pi = not sys.platform.startswith("win32")
@@ -38,10 +35,10 @@ try:
                 json.dump(config_defaults, write_file)
 except (FileNotFoundError, json.JSONDecodeError):
     with open("config/slack.json", "w+", encoding="utf8") as file:
-        print("config/slack.json not found or wrong, creating + populating defaults...")
+        timestamp_print("config/slack.json not found or wrong, creating + populating defaults...")
 
         json.dump(config_defaults, file)
-        print("Please fill out config/slack.json before running again.")
+        timestamp_print("Please fill out config/slack.json before running again.")
     exit()
 
 BUTTON_CONFIG = slack_config["button_config"]
@@ -61,6 +58,8 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
         device_id (str): the id of this specific device, received from slack.json
     """
 
+    timestamp_print("Getting device config...")
+
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
 
     device_id_list = sheets.get_region(sheets_service, spreadsheet_id,
@@ -72,50 +71,20 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
         # add 2 because skip first row + Google Sheets is 1 indexed
         device_index = device_id_list.index(device_id) + 2
     except ValueError:
-        print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
+        timestamp_print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
         sys.exit()
 
     try:
         device_info = sheets.get_region(sheets_service, spreadsheet_id,
                                         first_row = device_index, last_row = device_index,
                                         first_letter = "A", last_letter = "I")[0]
+        
+        timestamp_print(f"Got device info: {device_info}")
     except IndexError:
-        print("Index out of range when selecting device config. Did you forget to set the device ID (slack.json)?")
+        timestamp_print("Index out of range when selecting device config. Did you forget to set the device ID (slack.json)?")
         sys.exit()
 
     return device_info
-
-def get_datetime() -> str | None:
-    """
-    Gets the current datetime as a beautifully formatted string
-
-    Returns:
-        formatted_time (str | None): the formatted time string, if present
-    """
-
-    formatted_time = None
-    try:
-        response = requests.get(
-            "https://timeapi.io/api/time/current/zone?timeZone=America%2FDetroit",
-            timeout=3
-        )
-        response.raise_for_status() # prevent uncatchable errors
-        response_data = response.json()
-        iso_datetime = response_data["dateTime"]
-
-        if "." in iso_datetime:
-            date_part, frac = iso_datetime.split(".")
-            frac = frac[:6]  # keep only first 6 digits
-            iso_datetime = f"{date_part}.{frac}"
-
-        current_time = datetime.fromisoformat(iso_datetime)
-        formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
-    except (requests.exceptions.Timeout, json.decoder.JSONDecodeError, RequestException):
-        # Fall back on system time, though potentially iffy
-        now = datetime.now()
-        formatted_time = now.strftime("%B %d, %Y %I:%M:%S %p")
-
-    return formatted_time
 
 def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | None:
     """
@@ -129,8 +98,8 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
     Returns:
         the posted message id, if there is one OR None
     """
-
-    press_type = "SINGLE"
+    
+    timestamp_print("Interaction received, handling...")
 
     # set up Google Sheets and grab the config
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_config")
@@ -138,7 +107,6 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
 
-    device_location = device_config[3]
     device_message = device_config[4]
     device_rate_limit = int(device_config[7])
     device_channel_id = device_config[8]
@@ -148,7 +116,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
     current_timestamp = time.time()
 
     if current_timestamp - last_timestamp < device_rate_limit:
-        print("Rate limit applied. Message not sent.")
+        timestamp_print("Rate limit applied. Message not sent.")
         return {"statusCode": 429, "body": "Rate limit applied."}
 
     # handle empty message/location
@@ -157,7 +125,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
     else:
         final_message = device_message
 
-    print(f"Message retrieved from config: {final_message}")
+    timestamp_print(f"Message retrieved from config: {final_message}")
 
     # handle long button presses by sending a test message
     final_message += "\n*To respond, reply to this message in a thread within 3 minutes*\n*To resolve, react with :white_check_mark: or :+1:*"
@@ -165,13 +133,14 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
     # if we post to Slack, we need to go through AWS and return a message/channel id
     if do_post:
         message_id, channel_id = aws.post_to_slack(aws_client, final_message, device_channel_id, device_id, True)
-
         LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
 
-        return message_id, channel_id
-    # else not needed here cuz return
+        timestamp_print("Message posted to slack.")
 
+        return message_id, channel_id
+    
+    # else not needed here cuz return
     return None, None
 
 if __name__ == "__main__":
-    print(get_datetime(True))
+    pass
