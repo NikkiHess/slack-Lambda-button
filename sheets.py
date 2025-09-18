@@ -153,6 +153,8 @@ def create_spreadsheet(sheets_service, name: str = "Test") -> dict:
 		spreadsheet (dict): the created spreadsheet
 	"""
 
+	timestamp_print(f"Creating a new spreadsheet with name {name}...")
+
 	# Properties to create a spreadsheet with
 	spreadsheet = {
 		"properties": {
@@ -168,6 +170,8 @@ def create_spreadsheet(sheets_service, name: str = "Test") -> dict:
 		.execute()
 	)
 
+	timestamp_print(f"Spreadsheet with name {name} created successfully!")
+
 	return spreadsheet
 
 def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
@@ -182,6 +186,8 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 	Returns:
 		spreadsheet (dict): the retrieved spreadsheet, if any
 	"""
+
+	timestamp_print(f"Getting spreadsheet {spreadsheet_id}...")
 
 	spreadsheet = None
 
@@ -412,6 +418,8 @@ def setup_sheets(config_name: str):
 	# Log in using OAuth
 	creds = do_oauth_flow()
 
+	timestamp_print("Google Cloud OAuth flow complete.")
+
 	config_file = open_config(config_name)
 
 	sheets_service = None
@@ -428,6 +436,8 @@ def setup_sheets(config_name: str):
 		if config_data["id"] != "":
 			spreadsheet = get_spreadsheet(sheets_service, drive_service, config_data["id"])
 			spreadsheet_id = config_data["id"]
+
+			timestamp_print(f"Got spreadsheet {spreadsheet_id}")
 
 		# At this point, if there is no spreadsheet we need to create one
 		if spreadsheet is None:
