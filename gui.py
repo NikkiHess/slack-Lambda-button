@@ -126,23 +126,8 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
         if time.time() - PRESS_START >= 3:
             exit(0)
 
-    tap_registered = False
-
-    def handle_tap(event):
-        global tap_registered
-        if not tap_registered:
-            tap_registered = True
-            print("Tapped!")
-            handle_interaction(root, frame, style, do_post)
-
-    def reset_tap(event):
-        global tap_registered
-        tap_registered = False
-
-    root.bind("<ButtonPress-1>", handle_tap)
-    root.bind("<B1-Motion>", handle_tap)   # first motion counts as a tap
-    root.bind("<ButtonRelease-1>", reset_tap)
-
+    root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
+    root.bind("<ButtonRelease-1>", lambda event: handle_long_press())
 
 def scale_font(root: tk.Tk, base_size: int) -> int:
     """
@@ -553,6 +538,8 @@ def display_gui() -> None:
     # make a window
     root = tk.Tk()
     root.config(cursor="none")
+    root.focus_force()
+    root.grab_set()
 
     root.attributes("-fullscreen", True)
     root.configure(bg=BLUE)
