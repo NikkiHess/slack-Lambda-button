@@ -8,6 +8,7 @@ Nikki Hess - nkhess@umich.edu
 """
 
 from nikki_util import timestamp_print
+import nikki_util
 
 import time
 
@@ -46,11 +47,38 @@ frames_lock = threading.Lock()
 LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID = None, None
 CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID = None, None
 
+FONTS = None
+
 if is_simpleaudio_installed:
     INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
     RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
     RATELIMIT_SOUND = sa.WaveObject.from_wave_file("audio/ratelimit.wav")
     RESOLVED_SOUND = sa.WaveObject.from_wave_file("audio/resolved.wav")
+
+def preload_fonts(root: tk.Tk) -> dict:
+    """
+    Preloads commonly used fonts to avoid repeatedly creating them.
+
+    Args:
+        root (tk.Tk): the root window
+
+    Returns:
+        dict (tkFont.Font dict): fonts with their sizes
+    """
+    fonts = {}
+    # large heading
+    fonts["oswald_96"] = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
+    # medium heading / instructions
+    fonts["oswald_80"] = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
+    # small heading / countdown
+    fonts["oswald_36"] = tkFont.Font(family="Oswald", size=scale_font(root, 36), weight="bold")
+    # monospace for countdown
+    fonts["monospace_36"] = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
+    # label for escape
+    fonts["oswald_42"] = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
+
+    return fonts
+
 
 def preload_frames_lazy(root: tk.Tk):
     """
@@ -64,23 +92,19 @@ def preload_frames_lazy(root: tk.Tk):
 
     frame_count = 149
 
-    base = {"width": 1920, "height": 1080}
-    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
-    scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
-
-    with Image.open("images/custom-animation-fix.gif") as gif:
+    with Image.open("images/custom-animation-fix-pi-size.gif") as gif:
         gif.seek(0)
         with frames_lock: # lock to prevent race conditions (not guaranteed)
-            frames.append(load_and_scale_image(root, gif.copy(), scale))
+            frames.append(ImageTk.PhotoImage(gif.copy()))
 
     def worker():
         global frames_ready
-        with Image.open("images/custom-animation-fix.gif") as gif:
+        with Image.open("images/custom-animation-fix-pi-size.gif") as gif:
             for i in range(1, frame_count):
                 try:
                     gif.seek(i)
                     with frames_lock: # lock in case of race conditions (not guaranteed)
-                        frames.append(load_and_scale_image(root, gif.copy(), scale))
+                        frames.append(ImageTk.PhotoImage(gif.copy()))
                 except EOFError:
                     # if we can't load any more frames, get outta here
                     break
@@ -126,25 +150,6 @@ def scale_font(root: tk.Tk, base_size: int) -> int:
 
     return int(calculated_scale * base_size)
 
-def load_and_scale_image(root: tk.Tk, img: Image.Image, scale: float) -> ImageTk.PhotoImage:
-    """
-    Uses PIL to rescale an image based on the size of the window
-
-    Args:
-        root (tk.Tk): the root window
-        image_path (str): the image to load and scale
-        scale (float): the new scale for the image
-
-    Returns:
-        ImageTk.PhotoImage: the scaled PhotoImage for TKinter
-    """
-
-    new_size = (int(scale * img.width), int(scale * img.height))
-    resized_image = img.resize(new_size, Image.Resampling.BILINEAR) # BILINEAR is faster than LANCZOS
-    photo_image = ImageTk.PhotoImage(resized_image)
-
-    return photo_image
-
 def display_main(frame: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
@@ -155,11 +160,8 @@ def display_main(frame: tk.Frame, style: ttk.Style) -> None:
     """
 
     def load_contents():
-        oswald_96 = tkFont.Font(family="Oswald", size=scale_font(frame, 96), weight="bold")
-        oswald_80 = tkFont.Font(family="Oswald", size=scale_font(frame, 80), weight="bold")
-
-        style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=oswald_96)
-        style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=oswald_80)
+        style.configure("NeedHelp.TLabel", foreground=MAIZE, background=BLUE, font=FONTS["oswald_96"])
+        style.configure("Instructions.TLabel", foreground=MAIZE, background=BLUE, font=FONTS["oswald_80"])
 
         dude_img_label = ttk.Label(frame, image=frames[0], background=BLUE)
         dude_img_label.place(relx=0.5, rely=0.34, anchor="center")
@@ -255,15 +257,10 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         do_post (bool): whether to post to Slack
     """
 
-    base_timeout = 180
+    base_timeout = 20
 
     # countdown
     timeout = base_timeout
-
-    oswald_96 = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
-    oswald_80 = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
-    oswald_36 = tkFont.Font(family="Oswald", size=scale_font(root, 36), weight="bold")
-    monospace = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
 
     # make a BG frame so nothing else shows through
     background_frame = tk.Frame(frame, bg=BLUE)
@@ -275,8 +272,8 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     text_widget.place(relx=0.996, rely=0.99, anchor="se", relheight=0.07, relwidth=0.355)
 
     # configure tags for different fonts
-    text_widget.tag_configure("timeout", font=oswald_36, foreground=MAIZE)
-    text_widget.tag_configure("countdown", font=monospace, foreground=MAIZE)
+    text_widget.tag_configure("timeout", font=FONTS["oswald_36"], foreground=MAIZE)
+    text_widget.tag_configure("countdown", font=FONTS["monospace_36"], foreground=MAIZE)
 
     # configure tag for right justification
     text_widget.tag_configure("right", justify="right")
@@ -344,7 +341,13 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                         # if we've received a reply mark it replied
                         message_id = pending_message_ids[0]
                         channel_id = message_to_channel[message_id]
-                        aws.mark_message_replied(slack.lambda_client, message_id, channel_id, True)
+                        
+                        threading.Thread(
+                            target=aws.mark_message_replied,
+                            args=(slack.lambda_client, message_id, channel_id, True),
+                            daemon=True
+                        ).start()
+
 
                         if is_simpleaudio_installed:
                             RECEIVE_SOUND.play()
@@ -356,7 +359,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                         
                         threading.Thread(target=sheets.add_row, args=(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
                                                                         [
-                                                                        slack.get_datetime(),
+                                                                        nikki_util.get_datetime(),
                                                                         sheets_button_config[3], # gets location
                                                                         "Resolved"
                                                                         ]
@@ -377,9 +380,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
             sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
                                                     CONFIG_SPREADSHEET_ID,
                                                     slack.BUTTON_CONFIG["device_id"])
-            threading.Thread(target=sheets.add_row, args=(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
+            threading.Thread(target=sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
                                                             [
-                                                            slack.get_datetime(),
+                                                            nikki_util.get_datetime(),
                                                             sheets_button_config[3], # gets location
                                                             "Replied" if reply_received else "Timed Out"
                                                             ]
@@ -394,7 +397,12 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                     message_id = pending_message_ids[0]
                     channel_id = message_to_channel[message_id]
 
-                    aws.mark_message_timed_out(slack.lambda_client, message_id, channel_id, True)
+                    threading.Thread(
+                        target=aws.mark_message_timed_out,
+                        args=(slack.lambda_client, message_id, channel_id, True),
+                        daemon=True
+                    ).start()
+
 
         # schedule countdown until seconds_left is 1
         if timeout > 0:
@@ -407,7 +415,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     received_label = tk.Label(frame,
                             text="Help is on the way!",
-                            font=oswald_96,
+                            font=FONTS["oswald_96"],
                             fg=MAIZE,
                             bg=BLUE,
                             anchor="center",
@@ -417,7 +425,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
     waiting_label = tk.Label(frame,
                             text="Updates will be provided on this screen.",
-                            font=oswald_80,
+                            font=FONTS["oswald_80"],
                             fg=MAIZE,
                             bg=BLUE,
                             anchor="center",
@@ -525,6 +533,7 @@ def display_gui() -> None:
     """
     Displays the TKinter GUI. Essentially the main function
     """
+    global FONTS
 
     escape_display_period_ms = 5000
     do_post = True
@@ -551,13 +560,11 @@ def display_gui() -> None:
     #     setup_gpio(root, display_frame, style, do_post)
 
     preload_frames_lazy(root)
+    FONTS = preload_fonts(root)
 
     display_main(display_frame, style)
 
-    # load oswald, a U of M standard font
-    oswald_42 = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
-
-    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=oswald_42)
+    style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=FONTS["oswald_42"])
 
     # set up the actual items in the display
     escape_label = ttk.Label(display_frame, text="Press escape or long press to exit", style="Escape.TLabel")

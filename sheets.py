@@ -26,7 +26,7 @@ from nikki_util import timestamp_print
 # The only scope we need is drive.file so we can create files and interact with those files
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 CACHE = {}
-CACHE_COOLDOWN = 1500
+CACHE_COOLDOWN = 60 * 60 # 60 minutes in seconds
 
 config_defaults = {}
 try:
@@ -191,35 +191,22 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 
 	spreadsheet = None
 
-	try:
-		response = (
-			drive_service
-			.files()
-			.get(fileId=spreadsheet_id, fields="trashed")
-		).execute()
-	except (HttpError):
-		timestamp_print(f"Invalid spreadsheet id {spreadsheet_id}. Make sure you typed it correctly!")
-		exit(1)
-
 	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
 	cached_contents = cached_spreadsheet.get("contents") if cached_spreadsheet else None
 	contents_expiry = cached_spreadsheet.get("contents_expiry") if cached_spreadsheet else None
 
-	if not response["trashed"]:
-		if cached_contents is not None and contents_expiry > time.time():
-			timestamp_print(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
-			spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
-		else:
-			spreadsheet = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-			timestamp_print(f"Got existing spreadsheet with ID: {spreadsheet_id}")
-			timestamp_print("Caching spreadsheet...")
-
-            # we need to make sure the structure exists first by setting a default
-			cached_spreadsheet = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
-			cached_spreadsheet["contents"] = spreadsheet
-			cached_spreadsheet["contents_expiry"] = time.time() + CACHE_COOLDOWN
+	if cached_contents is not None and contents_expiry > time.time():
+		timestamp_print(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
+		spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
 	else:
-		timestamp_print("Spreadsheet was trashed. We'll have to create a new one.")
+		spreadsheet = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+		timestamp_print(f"Got existing spreadsheet with ID: {spreadsheet_id}")
+		timestamp_print("Caching spreadsheet...")
+
+		# we need to make sure the structure exists first by setting a default
+		cached_spreadsheet = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
+		cached_spreadsheet["contents"] = spreadsheet
+		cached_spreadsheet["contents_expiry"] = time.time() + CACHE_COOLDOWN
 
 	return spreadsheet
 
@@ -343,6 +330,29 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 		)
 		.execute()
 	)
+
+	# update cache
+	spreadsheet_cache = CACHE["spreadsheets"].setdefault(spreadsheet_id, {})
+
+	# update cache value for first_empty_row
+	spreadsheet_cache["first_empty_row"] = {
+		"value": next_row + 1,
+        "expiry": time.time() + CACHE_COOLDOWN
+    }
+
+	regions_cache = spreadsheet_cache.get("regions", {})
+	for key, entry in regions_cache.items():
+		first_row, last_row, first_letter, last_letter = key
+		if last_row >= next_row:
+            # Extend the cached region with the new row
+			entry["value"].append(cells)
+			entry["expiry"] = time.time() + CACHE_COOLDOWN
+
+    # Update "emptiness" — definitely not empty anymore
+	spreadsheet_cache["emptiness"] = {
+        "value": False,
+        "expiry": time.time() + CACHE_COOLDOWN
+    }
 
 	timestamp_print(f"{result.get('updatedCells')} cells added in row {next_row} of spreadsheet {spreadsheet_id}: {cells}")
 	return result

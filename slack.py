@@ -10,6 +10,7 @@ Nikki Hess (nkhess@umich.edu)
 import json
 import sys
 import time
+import threading
 
 from typing import List
 
@@ -61,32 +62,20 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
     timestamp_print("Getting device config...")
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
-
-    device_id_list = sheets.get_region(sheets_service, spreadsheet_id,
+    all_rows = sheets.get_region(sheets_service, spreadsheet_id,
                                         first_row = 2, last_row = last_row,
-                                        first_letter = "B", last_letter = "B")
+                                        first_letter = "A", last_letter = "I")
 
-    device_id_list = [id[0].strip() if id != [] else "" for id in device_id_list]
-    try:
-        # add 2 because skip first row + Google Sheets is 1 indexed
-        device_index = device_id_list.index(device_id) + 2
-    except ValueError:
-        timestamp_print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
-        sys.exit()
-
-    try:
-        device_info = sheets.get_region(sheets_service, spreadsheet_id,
-                                        first_row = device_index, last_row = device_index,
-                                        first_letter = "A", last_letter = "I")[0]
-        
-        timestamp_print(f"Got device info: {device_info}")
-    except IndexError:
-        timestamp_print("Index out of range when selecting device config. Did you forget to set the device ID (slack.json)?")
-        sys.exit()
-
+    for idx, row in enumerate(all_rows, start=2):  # Google Sheets is 1-indexed
+        if len(row) > 1 and row[1].strip() == device_id:
+            timestamp_print(f"Got device info: {row}")
+            return row
+    
+    timestamp_print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
+    sys.exit()
     return device_info
 
-def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | None:
+def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict | None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
@@ -132,15 +121,27 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> str | 
 
     # if we post to Slack, we need to go through AWS and return a message/channel id
     if do_post:
-        message_id, channel_id = aws.post_to_slack(aws_client, final_message, device_channel_id, device_id, True)
-        LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
+        result_container = {}
 
-        timestamp_print("Message posted to slack.")
+        def aws_worker():
+            message_id, channel_id = aws.post_to_slack(
+                aws_client, final_message, device_channel_id, device_id, True
+            )
+            LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
+            timestamp_print("Message posted to slack.")
+            
+            # store results for the caller
+            result_container["message_id"] = message_id
+            result_container["channel_id"] = channel_id
 
-        return message_id, channel_id
+        thread = threading.Thread(target=aws_worker, daemon=True)
+        thread.start()
+        thread.join()  # wait for the thread to finish so we can return values
+
+        return result_container.get("message_id"), result_container.get("channel_id")
     
     # else not needed here cuz return
-    return None, None
+    return None
 
 if __name__ == "__main__":
     pass
