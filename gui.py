@@ -126,9 +126,9 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
         if time.time() - PRESS_START >= 3:
             exit(0)
 
-    # root.bind("<Motion>", lambda event: handle_interaction(root, frame, style, do_post))
-    # root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
-    root.bind("<ButtonRelease-1>", lambda event: handle_interaction(root, frame, style, do_post))
+    root.bind("<Motion>", lambda event: handle_interaction(root, frame, style, do_post))
+    root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
+    root.bind("<ButtonRelease-1>", lambda event: handle_long_press())
 
 def scale_font(root: tk.Tk, base_size: int) -> int:
     """
