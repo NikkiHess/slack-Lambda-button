@@ -171,7 +171,7 @@ def get_user_first_name(user_id: str):
     }
 
     # 10 second timeout
-    response = requests.get(url, headers=headers, params=params, timeout=10)
+    response = requests.get(url, headers=headers, params=params, timeout=5)
     user_info = response.json()
 
     if not user_info.get("ok"):
@@ -211,7 +211,7 @@ def get_location_last_message(channel_id: str, user_id: str, location: str):
     }
 
     # 10 second timeout
-    ct_response = requests.get(url, headers=headers, params=params, timeout=10)
+    ct_response = requests.get(url, headers=headers, params=params, timeout=5)
     response_data = ct_response.json()
 
     if not response_data.get("ok"):
@@ -362,7 +362,7 @@ def get_message_content(channel_id: str, message_id: str):
     }
 
     # 10 second timeout
-    ct_response = requests.get(url, headers=headers, params=params, timeout=10)
+    ct_response = requests.get(url, headers=headers, params=params, timeout=5)
     response_data = ct_response.json()
 
     if not response_data.get("ok"):
@@ -397,7 +397,7 @@ def message_append(channel_id: str, ts: str, to_append: str):
     }
 
     # 10 second timeout
-    res_response = requests.post(url, headers=headers, json=payload, timeout=10)
+    res_response = requests.post(url, headers=headers, json=payload, timeout=5)
     response_data = res_response.json()
 
     if not response_data.get("ok"):
@@ -439,7 +439,7 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
             return "N/A", "N/A"
 
     # 10 second timeout
-    post_response = requests.post(url, headers=headers, json=payload, timeout=10)
+    post_response = requests.post(url, headers=headers, json=payload, timeout=5)
     response_data = post_response.json()
 
     if not response_data.get("ok"):
@@ -466,7 +466,7 @@ def get_bot_user_id():
         "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
     }
 
-    response = requests.get(url, headers=headers, timeout=10)
+    response = requests.get(url, headers=headers, timeout=5)
     response_data = response.json()
 
     if not response_data.get("ok"):
