@@ -80,13 +80,10 @@ def preload_fonts(root: tk.Tk) -> dict:
     return fonts
 
 
-def preload_frames_lazy(root: tk.Tk):
+def preload_frames_lazy():
     """
     Preloads and caches images lazily.
     First frame available immediately, others load in the background.
-    
-    Args:
-        root (tk.Tk): The root window.
     """
     global frames, frames_ready
 
@@ -129,8 +126,9 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
         if time.time() - PRESS_START >= 3:
             exit(0)
 
-    root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
-    root.bind("<ButtonRelease-1>", lambda event: handle_long_press())
+    # root.bind("<Motion>", lambda event: handle_interaction(root, frame, style, do_post))
+    # root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
+    root.bind("<ButtonRelease-1>", lambda event: handle_interaction(root, frame, style, do_post))
 
 def scale_font(root: tk.Tk, base_size: int) -> int:
     """
@@ -559,7 +557,7 @@ def display_gui() -> None:
     # if is_raspberry_pi:
     #     setup_gpio(root, display_frame, style, do_post)
 
-    preload_frames_lazy(root)
+    preload_frames_lazy()
     FONTS = preload_fonts(root)
 
     display_main(display_frame, style)
