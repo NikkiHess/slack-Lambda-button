@@ -126,8 +126,17 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
         if time.time() - PRESS_START >= 3:
             exit(0)
 
-    root.bind("<Motion>", lambda event: handle_interaction(root, frame, style, do_post))
-    root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
+    last_tap = 0
+
+    def handle_tap(event):
+        global last_tap
+        now = time.time()
+        if now - last_tap < 0.2:  # ignore taps within 200ms
+            return
+        last_tap = now
+        handle_interaction(root, frame, style, do_post)
+
+    root.bind("<Button-1>", handle_tap)
     root.bind("<ButtonRelease-1>", lambda event: handle_long_press())
 
 def scale_font(root: tk.Tk, base_size: int) -> int:
