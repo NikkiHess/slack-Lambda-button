@@ -195,7 +195,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                 for widget in frame.winfo_children():
                     widget.place_forget()
 
-                bind_presses(root, frame, style, False)
+                bind_presses(root, frame, style, True)
 
                 display_post_interaction(root, frame, style, do_post)
 
@@ -229,7 +229,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         do_post (bool): whether to post to Slack
     """
 
-    base_timeout = 20
+    base_timeout = 180
 
     # countdown
     timeout = base_timeout
