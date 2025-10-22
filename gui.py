@@ -580,6 +580,7 @@ def display_gui() -> None:
 
 if __name__ == "__main__":
     timestamp_print("Starting slack-Lambda-button gui...")
+    nikki_util.set_process_name()
     setup_google_sheets_logging()
 
     display_gui()

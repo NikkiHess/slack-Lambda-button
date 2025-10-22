@@ -8,7 +8,7 @@ Nikki Hess (nkhess@umich.edu)
 """
 
 from datetime import datetime
-import requests
+from ctypes import cdll, byref, create_string_buffer
 from pathlib import Path
 
 LOG_FILE = Path("program.log")
@@ -54,3 +54,20 @@ def get_datetime(long: bool = True) -> str | None:
         formatted_time = current_time.strftime("%x %X")
 
     return formatted_time
+
+def set_process_name(process_name: str = "SlackLambdaButton"):
+    """
+    Adapated from https://stackoverflow.com/questions/51521320/tkinter-python-how-to-give-process-name
+    
+    Args:
+        process_name (str): the name to set the process to
+    """
+
+    process_name = process_name + b"\x00"
+
+    libc = cdll.LoadLibrary('libc.so.6')  # Loading a 3rd party library C
+    buff = create_string_buffer(len(process_name)+1)  # Note: One larger than the name (man prctl says that)
+    buff.value = process_name  # Null terminated string as it should be
+
+    libc.prctl(15, byref(buff), 0, 0, 0)
+    # Refer to "#define" of "/usr/include/linux/prctl.h" for the mysterious value 16 & arg[3..5] are zero as the man page says.
