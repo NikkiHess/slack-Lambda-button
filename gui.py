@@ -67,15 +67,15 @@ def preload_fonts(root: tk.Tk) -> dict:
     """
     fonts = {}
     # large heading
-    fonts["oswald_96"] = tkFont.Font(family="Oswald", size=scale_font(root, 96), weight="bold")
+    fonts["oswald_96"] = tkFont.Font(family="Oswald", size=40, weight="bold")
     # medium heading / instructions
-    fonts["oswald_80"] = tkFont.Font(family="Oswald", size=scale_font(root, 80), weight="bold")
+    fonts["oswald_80"] = tkFont.Font(family="Oswald", size=33, weight="bold")
     # small heading / countdown
-    fonts["oswald_36"] = tkFont.Font(family="Oswald", size=scale_font(root, 36), weight="bold")
+    fonts["oswald_36"] = tkFont.Font(family="Oswald", size=15, weight="bold")
     # monospace for countdown
-    fonts["monospace_36"] = tkFont.Font(family="Ubuntu Mono", size=scale_font(root, 36), weight="bold")
+    fonts["monospace_36"] = tkFont.Font(family="Ubuntu Mono", size=15, weight="bold")
     # label for escape
-    fonts["oswald_42"] = tkFont.Font(family="Oswald", size=scale_font(root, 42), weight="bold")
+    fonts["oswald_42"] = tkFont.Font(family="Oswald", size=17, weight="bold")
 
     return fonts
 
@@ -128,24 +128,6 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
 
     root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
     root.bind("<ButtonRelease-1>", lambda event: handle_long_press())
-
-def scale_font(root: tk.Tk, base_size: int) -> int:
-    """
-    Scales a font based on the size of the window
-
-    Args:
-        root (tk.Tk): the root window
-        base_size (int): the size of the text at 1080p
-
-    Returns:
-        int: the scaled font's size
-    """
-    base = {"width": 1920, "height": 1080}
-    actual = {"width": root.winfo_screenwidth(), "height": root.winfo_screenheight()}
-
-    calculated_scale = min(actual["width"] / base["width"], actual["height"] / base["height"])
-
-    return int(calculated_scale * base_size)
 
 def display_main(frame: tk.Frame, style: ttk.Style) -> None:
     """

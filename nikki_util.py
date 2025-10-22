@@ -63,11 +63,13 @@ def set_process_name(process_name: str = b"SLB-GUI\x00"):
         process_name (str): the null (\\x00) terminated name to set the process to
     """
 
-    process_name = process_name + b"\x00"
+    import os
+    if os.name == "posix":
+        process_name = process_name + b"\x00"
 
-    libc = cdll.LoadLibrary('libc.so.6')  # Loading a 3rd party library C
-    buff = create_string_buffer(len(process_name)+1)  # Note: One larger than the name (man prctl says that)
-    buff.value = process_name  # Null terminated string as it should be
+        libc = cdll.LoadLibrary('libc.so.6')  # Loading a 3rd party library C
+        buff = create_string_buffer(len(process_name)+1)  # Note: One larger than the name (man prctl says that)
+        buff.value = process_name  # Null terminated string as it should be
 
-    libc.prctl(15, byref(buff), 0, 0, 0)
-    # Refer to "#define" of "/usr/include/linux/prctl.h" for the mysterious value 16 & arg[3..5] are zero as the man page says.
+        libc.prctl(15, byref(buff), 0, 0, 0)
+        # Refer to "#define" of "/usr/include/linux/prctl.h" for the mysterious value 16 & arg[3..5] are zero as the man page says.
