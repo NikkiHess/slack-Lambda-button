@@ -55,12 +55,12 @@ def get_datetime(long: bool = True) -> str | None:
 
     return formatted_time
 
-def set_process_name(process_name: str = "SlackLambdaButton"):
+def set_process_name(process_name: str = b"SlackLambdaButton\x00"):
     """
     Adapated from https://stackoverflow.com/questions/51521320/tkinter-python-how-to-give-process-name
     
     Args:
-        process_name (str): the name to set the process to
+        process_name (str): the null (\\x00) terminated name to set the process to
     """
 
     process_name = process_name + b"\x00"
