@@ -33,7 +33,6 @@ import sheets
 
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
-PRESS_START = None # for long button presses
 
 pending_message_ids = [] # pending messages from this device specifically
 message_to_channel = {} # maps message ids to channel ids
@@ -121,13 +120,7 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
         do_post (bool): whether to post to Slack
     """
 
-    # long presses exit the app
-    def handle_long_press():
-        if time.time() - PRESS_START >= 3:
-            exit(0)
-
     root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
-    root.bind("<ButtonRelease-1>", lambda event: handle_long_press())
 
 def display_main(frame: tk.Frame, style: ttk.Style) -> None:
     """
@@ -548,7 +541,7 @@ def display_gui() -> None:
     style.configure("Escape.TLabel", foreground=MAIZE, background=BLUE, font=FONTS["oswald_42"])
 
     # set up the actual items in the display
-    escape_label = ttk.Label(display_frame, text="Press escape or long press to exit", style="Escape.TLabel")
+    escape_label = ttk.Label(display_frame, text="Press escape to exit", style="Escape.TLabel")
     escape_label.place(relx=0.99, rely=0.99, anchor="se")
 
     # Fade the escape label out
