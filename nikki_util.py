@@ -35,10 +35,11 @@ def get_datetime(long: bool = True, filesafe: bool = False) -> str | None:
 
     return formatted_time
 
+# make the logfile
 formatted_time = get_datetime(long=False, filesafe=True)
 LOG_FILE = Path(f"logs/{formatted_time}.log")
 Path("logs").mkdir(exist_ok=True)
-LOG_FILE.touch(exist_ok=True)
+LOG_FILE.touch(exist_ok=True) # it shouldn't exist, but just in case :)
 
 def timestamp_print(message: str, log: bool = True):
     """

@@ -18,7 +18,7 @@ import boto3
 
 import sheets
 import aws
-from nikki_util import timestamp_print
+from nikki_util import timestamp_print as tsprint
 
 lambda_client, sqs_client = aws.setup_aws()
 is_raspberry_pi = not sys.platform.startswith("win32")
@@ -36,10 +36,10 @@ try:
                 json.dump(config_defaults, write_file)
 except (FileNotFoundError, json.JSONDecodeError):
     with open("config/slack.json", "w+", encoding="utf8") as file:
-        timestamp_print("config/slack.json not found or wrong, creating + populating defaults...")
+        tsprint("config/slack.json not found or wrong, creating + populating defaults...")
 
         json.dump(config_defaults, file)
-        timestamp_print("Please fill out config/slack.json before running again.")
+        tsprint("Please fill out config/slack.json before running again.")
     exit()
 
 BUTTON_CONFIG = slack_config["button_config"]
@@ -59,7 +59,7 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
         device_id (str): the id of this specific device, received from slack.json
     """
 
-    timestamp_print("Getting device config...")
+    tsprint("Getting device config...")
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
     all_rows = sheets.get_region(sheets_service, spreadsheet_id,
@@ -68,10 +68,10 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
 
     for idx, row in enumerate(all_rows, start=2):  # Google Sheets is 1-indexed
         if len(row) > 1 and row[1].strip() == device_id:
-            timestamp_print(f"Got device info: {row}")
+            tsprint(f"Got device info: {row}")
             return row
     
-    timestamp_print(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
+    tsprint(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
     sys.exit()
     return device_info
 
@@ -88,7 +88,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict |
         the posted message id, if there is one OR None
     """
     
-    timestamp_print("Interaction received, handling...")
+    tsprint("Interaction received, handling...")
 
     # set up Google Sheets and grab the config
     _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_config")
@@ -105,7 +105,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict |
     current_timestamp = time.time()
 
     if current_timestamp - last_timestamp < device_rate_limit:
-        timestamp_print("Rate limit applied. Message not sent.")
+        tsprint("Rate limit applied. Message not sent.")
         return {"statusCode": 429, "body": "Rate limit applied."}
 
     # handle empty message/location
@@ -114,7 +114,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict |
     else:
         final_message = device_message
 
-    timestamp_print(f"Message retrieved from config: {final_message}")
+    tsprint(f"Message retrieved from config: {final_message}")
 
     # handle long button presses by sending a test message
     final_message += "\n*To respond, reply to this message in a thread within 3 minutes*\n*To resolve, react with :white_check_mark: or :+1:*"
@@ -128,7 +128,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict |
                 aws_client, final_message, device_channel_id, device_id, True
             )
             LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
-            timestamp_print("Message posted to slack.")
+            tsprint("Message posted to slack.")
             
             # store results for the caller
             result_container["message_id"] = message_id

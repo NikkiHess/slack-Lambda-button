@@ -7,7 +7,7 @@ Author:
 Nikki Hess - nkhess@umich.edu
 """
 
-from nikki_util import timestamp_print
+from nikki_util import timestamp_print as tsprint
 import nikki_util
 
 import time
@@ -22,9 +22,9 @@ from PIL import Image, ImageTk
 
 is_simpleaudio_installed = True
 try:
-    import simpleaudio as sa
+    import simpleaudio as saudio
 except ImportError as e:
-    timestamp_print("WARNING: SimpleAudio is not installed, audio will not play")
+    tsprint("WARNING: SimpleAudio is not installed, audio will not play")
     is_simpleaudio_installed = False
 
 import slack
@@ -49,17 +49,15 @@ CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID = None, None
 FONTS = None
 
 if is_simpleaudio_installed:
-    INTERACT_SOUND = sa.WaveObject.from_wave_file("audio/send.wav")
-    RECEIVE_SOUND = sa.WaveObject.from_wave_file("audio/receive.wav")
-    RATELIMIT_SOUND = sa.WaveObject.from_wave_file("audio/ratelimit.wav")
-    RESOLVED_SOUND = sa.WaveObject.from_wave_file("audio/resolved.wav")
+    tsprint("simpleaudio installation found, loading audio files...")
+    INTERACT_SOUND = saudio.WaveObject.from_wave_file("audio/send.wav")
+    RECEIVE_SOUND = saudio.WaveObject.from_wave_file("audio/receive.wav")
+    RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
+    RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
 
-def preload_fonts(root: tk.Tk) -> dict:
+def preload_fonts() -> dict:
     """
     Preloads commonly used fonts to avoid repeatedly creating them.
-
-    Args:
-        root (tk.Tk): the root window
 
     Returns:
         dict (tkFont.Font dict): fonts with their sizes
@@ -210,7 +208,10 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                                             style="Escape.TLabel")
                 ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
                 if is_simpleaudio_installed:
-                    RATELIMIT_SOUND.play()
+                    try:
+                        RATELIMIT_SOUND.play()
+                    except Exception as e:
+                        tsprint(f"Error playing rate limit sound: {e}")
                 root.after(3 * 1000, fade_label, root,
                            ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
 
@@ -530,11 +531,8 @@ def display_gui() -> None:
     root.bind("<Escape>", lambda event: exit(0))
     bind_presses(root, display_frame, style, do_post)
 
-    # if is_raspberry_pi:
-    #     setup_gpio(root, display_frame, style, do_post)
-
     preload_frames_lazy()
-    FONTS = preload_fonts(root)
+    FONTS = preload_fonts()
 
     display_main(display_frame, style)
 
@@ -551,10 +549,10 @@ def display_gui() -> None:
     # run
     root.mainloop()
 
-    timestamp_print("Running TKinter mainloop...")
+    tsprint("Running TKinter mainloop...")
 
 if __name__ == "__main__":
-    timestamp_print("Starting slack-Lambda-button gui...")
+    tsprint("Starting slack-Lambda-button gui...")
     nikki_util.set_process_name()
     setup_google_sheets_logging()
 

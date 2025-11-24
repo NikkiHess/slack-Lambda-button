@@ -10,7 +10,7 @@ Nikki Hess (nkhess@umich.edu)
 import json
 import boto3
 
-from nikki_util import timestamp_print
+from nikki_util import timestamp_print as tsprint
 
 LATEST_MESSAGE = None # latest SQS message
 STOP_THREAD = False
@@ -27,7 +27,7 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
         dev (bool): whether we're using the dev AWS instance
     """
 
-    timestamp_print("Posting message to Slack via AWS...")
+    tsprint("Posting message to Slack via AWS...")
 
     payload = {
         "body": {
@@ -39,7 +39,7 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
     }
     payload = json.dumps(payload) # convert dict to string
 
-    timestamp_print(f"AWS Payload: {payload}")
+    tsprint(f"AWS Payload: {payload}")
 
     # the function name is apparently the name of the instance ¯\_(ツ)_/¯
     response = aws_client.invoke(
@@ -47,7 +47,7 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
         Payload=payload
     )
     
-    timestamp_print(f"AWS Response: {response}")
+    tsprint(f"AWS Response: {response}")
 
     # extract our custom response
     response = response["Payload"].read().decode("utf-8")
@@ -67,7 +67,7 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         dev (bool): whether we're using the dev AWS instance
     """
 
-    timestamp_print(f"Marking message {message_id} as timed out...")
+    tsprint(f"Marking message {message_id} as timed out...")
 
     payload = {
         "body": {
@@ -78,7 +78,7 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
     }
     payload = json.dumps(payload) # convert dict to string
 
-    timestamp_print(f"AWS Payload: {payload}")
+    tsprint(f"AWS Payload: {payload}")
 
     # invoke the AWS Lambda function
     response = aws_client.invoke(
@@ -86,7 +86,7 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         Payload=payload
     )
     
-    timestamp_print(f"AWS Response: {response}")
+    tsprint(f"AWS Response: {response}")
 
 def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
     """
@@ -99,7 +99,7 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
         dev (bool): whether we're using the dev AWS instance
     """
 
-    timestamp_print(f"Marking message {message_id} as replied...")
+    tsprint(f"Marking message {message_id} as replied...")
 
     payload = {
         "body": {
@@ -110,7 +110,7 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
     }
     payload = json.dumps(payload) # convert dict to string
 
-    timestamp_print(f"AWS Payload: {payload}")
+    tsprint(f"AWS Payload: {payload}")
 
     # invoke the AWS Lambda function
     response = aws_client.invoke(
@@ -118,7 +118,7 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
         Payload=payload
     )
     
-    timestamp_print(f"AWS Response: {response}")
+    tsprint(f"AWS Response: {response}")
 
 def poll_sqs(sqs_client: boto3.client, device_id: str):
     """
@@ -155,7 +155,7 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
             message_body = message_body["Message"] # get message
             message_body = json.loads(message_body) # load into JSON again
 
-            timestamp_print(f"SQS message received: {message_body}")
+            tsprint(f"SQS message received: {message_body}")
             if "reply_text" in message_body.keys():
                 LATEST_MESSAGE = message_body
 
@@ -173,7 +173,7 @@ def setup_aws() -> boto3.client:
         the Lambda client, the SQS client
     """
 
-    timestamp_print("Setting up AWS...")
+    tsprint("Setting up AWS...")
 
     global AWS_CONFIG, SLACK_CONFIG, SQS_CLIENT
 
@@ -188,10 +188,10 @@ def setup_aws() -> boto3.client:
                     json.dump(config_defaults, write_file)
     except (FileNotFoundError, json.JSONDecodeError):
         with open("config/aws.json", "w+", encoding="utf8") as file:
-            timestamp_print("config/aws.json not found or wrong, creating + populating defaults...")
+            tsprint("config/aws.json not found or wrong, creating + populating defaults...")
 
             json.dump(config_defaults, file)
-            timestamp_print("Please fill out config/aws.json before running again.")
+            tsprint("Please fill out config/aws.json before running again.")
 
     config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
     try:
@@ -204,10 +204,10 @@ def setup_aws() -> boto3.client:
                     json.dump(config_defaults, write_file)
     except (FileNotFoundError, json.JSONDecodeError):
         with open("config/slack.json", "w+", encoding="utf8") as file:
-            timestamp_print("config/slack.json not found or wrong, creating + populating defaults...")
+            tsprint("config/slack.json not found or wrong, creating + populating defaults...")
 
             json.dump(config_defaults, file)
-            timestamp_print("Please fill out config/slack.json before running again.")
+            tsprint("Please fill out config/slack.json before running again.")
         exit()
 
     access_key = AWS_CONFIG["aws_access_key"]
@@ -230,7 +230,7 @@ def setup_aws() -> boto3.client:
         region_name=region
     )
 
-    timestamp_print("AWS successfully set-up")
+    tsprint("AWS successfully set-up")
 
     return client, SQS_CLIENT
 
