@@ -202,7 +202,11 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                 message_to_channel[message_id] = channel_id
 
                 if is_simpleaudio_installed:
-                    INTERACT_SOUND.play()
+                    try:
+                        INTERACT_SOUND.play()
+                        tsprint("Played interact sound")
+                    except Exception as e:
+                        tsprint(f"ERROR: couldn't play interact sound:\n{e}")
             elif do_post:
                 ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.",
                                             style="Escape.TLabel")
@@ -210,8 +214,9 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                 if is_simpleaudio_installed:
                     try:
                         RATELIMIT_SOUND.play()
+                        tsprint("Played rate limit sound")
                     except Exception as e:
-                        tsprint(f"Error playing rate limit sound: {e}")
+                        tsprint(f"ERROR: couldn't play rate limit sound:\n{e}")
                 root.after(3 * 1000, fade_label, root,
                            ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
 
@@ -323,7 +328,11 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
 
                         if is_simpleaudio_installed:
-                            RECEIVE_SOUND.play()
+                            try:
+                                RECEIVE_SOUND.play()
+                                tsprint("Played receive sound")
+                            except Exception as e:
+                                tsprint(f"ERROR: couldn't play receive sound:\n{e}")
                     # else revert to main and cancel this countdown
                     else:
                         sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
@@ -343,7 +352,11 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                         revert_to_main(root, frame, style, do_post)
                         
                         if is_simpleaudio_installed:
-                            RESOLVED_SOUND.play()
+                            try:
+                                RESOLVED_SOUND.play()
+                                tsprint("Played resolved sound")
+                            except Exception as e:
+                                tsprint(f"ERROR: couldn't play resolved sound:\n{e}")
 
                         aws.LATEST_MESSAGE = None
 
