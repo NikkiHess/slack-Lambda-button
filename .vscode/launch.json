@@ -5,12 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Debug Current File",
+            "name": "Run GUI",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": "${cwd}/gui.py",
             "console": "integratedTerminal",
-            "stopOnEntry": true,
             "justMyCode": false
         },
     ]

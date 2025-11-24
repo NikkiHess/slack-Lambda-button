@@ -11,8 +11,34 @@ from datetime import datetime
 from ctypes import cdll, byref, create_string_buffer
 from pathlib import Path
 
-LOG_FILE = Path("program.log")
-LOG_FILE.open("w", encoding="utf-8").close()
+def get_datetime(long: bool = True, filesafe: bool = False) -> str | None:
+    """
+    Gets the current datetime as a beautifully formatted string
+
+    Args:
+        long (bool): whether to have a long datetime or a short one
+        filesafe (bool): whether to keep the output safe for filenames (replace "/" and ":" with "-")
+    
+    Returns:
+        formatted_time (str | None): the formatted time string, if present
+    """
+    formatted_time = None
+    current_time = datetime.now()
+    
+    if long:
+        formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
+    else:
+        formatted_time = current_time.strftime("%x %X")
+
+    if filesafe:
+        formatted_time = formatted_time.replace("/", "-").replace(":", "-")
+
+    return formatted_time
+
+formatted_time = get_datetime(long=False, filesafe=True)
+LOG_FILE = Path(f"logs/{formatted_time}.log")
+Path("logs").mkdir(exist_ok=True)
+LOG_FILE.touch(exist_ok=True)
 
 def timestamp_print(message: str, log: bool = True):
     """
@@ -34,27 +60,6 @@ def timestamp_print(message: str, log: bool = True):
         except Exception as e:
             print(f"[{now}] Failed to write to log file: {e}")
 
-
-def get_datetime(long: bool = True) -> str | None:
-    """
-    Gets the current datetime as a beautifully formatted string
-
-    Args:
-        long (bool): whether to have a long datetime or a short one
-    
-    Returns:
-        formatted_time (str | None): the formatted time string, if present
-    """
-    formatted_time = None
-    current_time = datetime.now()
-    
-    if long:
-        formatted_time = current_time.strftime("%B %d, %Y %I:%M:%S %p")
-    else:
-        formatted_time = current_time.strftime("%x %X")
-
-    return formatted_time
-
 def set_process_name(process_name: str = b"SLB-GUI\x00"):
     """
     Adapated from https://stackoverflow.com/questions/51521320/tkinter-python-how-to-give-process-name
@@ -63,8 +68,9 @@ def set_process_name(process_name: str = b"SLB-GUI\x00"):
         process_name (str): the null (\\x00) terminated name to set the process to
     """
 
-    import os
-    if os.name == "posix":
+    import platform
+    # only on Linux
+    if platform.system() == "Linux":
         process_name = process_name + b"\x00"
 
         libc = cdll.LoadLibrary('libc.so.6')  # Loading a 3rd party library C
