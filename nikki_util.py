@@ -11,6 +11,8 @@ from datetime import datetime
 from ctypes import cdll, byref, create_string_buffer
 from pathlib import Path
 
+LOG_FILE = None
+
 def get_datetime(long: bool = True, filesafe: bool = False, include_time: bool = True) -> str | None:
     """
     Gets the current datetime as a beautifully formatted string

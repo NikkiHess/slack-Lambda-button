@@ -21,7 +21,6 @@ import aws
 from nikki_util import tsprint as tsprint
 
 lambda_client, sqs_client = aws.setup_aws()
-is_raspberry_pi = not sys.platform.startswith("win32")
 
 config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
 

@@ -210,6 +210,8 @@ def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
 
 	return spreadsheet
 
+def get_spreadsheet_tab():
+
 def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 	"""
 	Returns whether a given spreadsheet (by ID) is empty.

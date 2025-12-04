@@ -10,34 +10,23 @@ Nikki Hess - nkhess@umich.edu
 # TODO: UPDATE ALL DOCSTRINGS' FORMATTING
 
 from nikki_util import * 
-
 import time
-
+import threading # for sqs polling
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
-
-import threading # for sqs polling
-
 from PIL import Image, ImageTk
 
-is_simpleaudio_installed = True
-try:
-    import simpleaudio as saudio
-except ImportError as e:
-    tsprint("WARNING: SimpleAudio is not installed, audio will not play")
-    is_simpleaudio_installed = False
-
-import slack
 import aws
 import sheets
 
+# constants
 MAIZE = "#FFCB05"
 BLUE = "#00274C"
 
-pending_message_ids = [] # pending messages from this device specifically
-message_to_channel = {} # maps message ids to channel ids
-
+# globals for state
+pending_message_ids = []  # pending messages from this device specifically
+message_to_channel = {}   # maps message ids to channel ids
 pending_message_ids_lock = threading.Lock()
 
 frames = []
@@ -49,12 +38,12 @@ CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID = None, None
 
 FONTS = None
 
-if is_simpleaudio_installed:
-    tsprint("simpleaudio installation found, loading audio files...")
-    INTERACT_SOUND = saudio.WaveObject.from_wave_file("audio/send.wav")
-    RECEIVE_SOUND = saudio.WaveObject.from_wave_file("audio/receive.wav")
-    RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
-    RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
+# audio globals (will be initialized in main)
+is_simpleaudio_installed = False
+INTERACT_SOUND = None
+RECEIVE_SOUND = None
+RATELIMIT_SOUND = None
+RESOLVED_SOUND = None
 
 def preload_fonts() -> dict:
     """
@@ -181,7 +170,7 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     """
     global PRESS_START
     PRESS_START = time.time()
-    root.unbind("<ButtonPress-1>")
+    root.unbind("<ButtonPress-1>") # unbind clicks upon interaction
 
     def worker():
         message_id, channel_id = slack.handle_interaction(
@@ -523,7 +512,7 @@ def display_gui() -> None:
     global FONTS
 
     escape_display_period_ms = 5000
-    do_post = True
+    do_post = True # TODO: make this an environment variable? how do we do this?
 
     # make a window
     root = tk.Tk()
@@ -570,5 +559,20 @@ if __name__ == "__main__":
     tsprint("Starting slack-Lambda-button gui...")
     set_process_name()
     setup_google_sheets_logging()
+
+    # simpleaudio setup, in main so that it happens after create_logfile and cleans up code a bit
+    try:
+        import simpleaudio as saudio
+        INTERACT_SOUND = saudio.WaveObject.from_wave_file("audio/send.wav")
+        RECEIVE_SOUND = saudio.WaveObject.from_wave_file("audio/receive.wav")
+        RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
+        RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
+        is_simpleaudio_installed = True
+        tsprint("simpleaudio loaded successfully")
+    except ImportError:
+        tsprint("WARNING: simpleaudio not installed, audio will not play")
+
+    # in main so that it happens after create_logfile
+    import slack
 
     display_gui()
