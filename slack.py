@@ -18,7 +18,7 @@ import boto3
 
 import sheets
 import aws
-from nikki_util import timestamp_print as tsprint
+from nikki_util import tsprint as tsprint
 
 lambda_client, sqs_client = aws.setup_aws()
 is_raspberry_pi = not sys.platform.startswith("win32")

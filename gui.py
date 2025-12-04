@@ -7,8 +7,9 @@ Author:
 Nikki Hess - nkhess@umich.edu
 """
 
-from nikki_util import timestamp_print as tsprint
-import nikki_util
+# TODO: UPDATE ALL DOCSTRINGS' FORMATTING
+
+from nikki_util import * 
 
 import time
 
@@ -341,7 +342,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                         
                         threading.Thread(target=sheets.add_row, args=(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
                                                                         [
-                                                                        nikki_util.get_datetime(),
+                                                                        get_datetime(),
                                                                         sheets_button_config[3], # gets location
                                                                         "Resolved"
                                                                         ]
@@ -368,7 +369,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                                                     slack.BUTTON_CONFIG["device_id"])
             threading.Thread(target=sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
                                                             [
-                                                            nikki_util.get_datetime(),
+                                                            get_datetime(),
                                                             sheets_button_config[3], # gets location
                                                             "Replied" if reply_received else "Timed Out"
                                                             ]
@@ -565,8 +566,9 @@ def display_gui() -> None:
     tsprint("Running TKinter mainloop...")
 
 if __name__ == "__main__":
+    create_logfile() # START by creating logfile, necessary for tsprint
     tsprint("Starting slack-Lambda-button gui...")
-    nikki_util.set_process_name()
+    set_process_name()
     setup_google_sheets_logging()
 
     display_gui()
