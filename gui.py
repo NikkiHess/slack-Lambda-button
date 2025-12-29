@@ -9,16 +9,23 @@ Nikki Hess - nkhess@umich.edu
 
 # TODO: UPDATE ALL DOCSTRINGS' FORMATTING
 
-from nikki_util import * 
+# built-in
+from datetime import datetime
 import time
-import threading # for sqs polling
+import threading
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
-from PIL import Image, ImageTk
+import re
 
+# my modules
+import process
+from nikki_utils import tsprint, set_log_file
 import aws
 import sheets
+
+# pypi
+from PIL import Image, ImageTk
 
 # constants
 MAIZE = "#FFCB05"
@@ -539,9 +546,14 @@ def display_gui() -> None:
     tsprint("Running TKinter mainloop...")
 
 if __name__ == "__main__":
-    create_logfile() # START by creating logfile, necessary for tsprint
+    # set logfile name before any tsprint calls occur
+    now = datetime.now()
+    now = now.strftime("%x %X")
+    now = re.sub(r"\/|:", "-", now)
+    set_log_file(f"logs/{now}.log")
+
     tsprint("Starting slack-Lambda-button gui...")
-    set_process_name()
+    process.set_process_name_linux()
     
     _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets("sheets_config")
     SHEETS_SERVICE = sheets_service

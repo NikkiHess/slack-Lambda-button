@@ -10,7 +10,7 @@ Nikki Hess (nkhess@umich.edu)
 import json
 import boto3
 
-from nikki_util import tsprint as tsprint
+from nikki_utils import tsprint
 
 LATEST_MESSAGE = None # latest SQS message
 STOP_THREAD = False

@@ -21,7 +21,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from nikki_util import tsprint as tsprint
+from nikki_utils import tsprint
 
 # The only scope we need is drive.file so we can create files and interact with those files
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]

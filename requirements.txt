@@ -3,6 +3,9 @@ requests
 pillow
 simpleaudio
 
+# my library
+nikki-utils
+
 # google api + auth
 google-auth-httplib2
 google-auth-oauthlib
