@@ -33,8 +33,7 @@ frames = []
 frames_ready = False
 frames_lock = threading.Lock()
 
-LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID = None, None
-CONFIG_SHEETS_SERVICE, CONFIG_SPREADSHEET_ID = None, None
+SHEETS_SERVICE, SHEETS_SPREADSHEET_ID, SHEETS_TABS = None, None, None
 
 FONTS = None
 
@@ -325,18 +324,19 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                                 tsprint(f"ERROR: couldn't play receive sound:\n{e}")
                     # else revert to main and cancel this countdown
                     else:
-                        sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
-                                                                CONFIG_SPREADSHEET_ID,
+                        sheets_button_config = slack.get_config(SHEETS_SERVICE,
+                                                                SHEETS_SPREADSHEET_ID,
                                                                 slack.BUTTON_CONFIG["device_id"])
                         
-                        threading.Thread(target=sheets.add_row, args=(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
-                                                                        [
-                                                                        get_datetime(),
-                                                                        sheets_button_config[3], # gets location
-                                                                        "Resolved"
-                                                                        ]
-                                                                    ),
-                                                                daemon=True
+                        threading.Thread(target=sheets.add_row, 
+                                         args=(SHEETS_SERVICE, SHEETS_SPREADSHEET_ID,
+                                                    [
+                                                    get_datetime(),
+                                                    sheets_button_config[3], # gets location
+                                                    "Resolved"
+                                                    ]
+                                                ),
+                                                daemon=True
                                         ).start()
 
                         revert_to_main(root, frame, style, do_post)
@@ -353,8 +353,8 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         if timeout <= 0:
             revert_to_main(root, frame, style, do_post)
 
-            sheets_button_config = slack.get_config(CONFIG_SHEETS_SERVICE,
-                                                    CONFIG_SPREADSHEET_ID,
+            sheets_button_config = slack.get_config(SHEETS_SERVICE,
+                                                    SHEETS_SPREADSHEET_ID,
                                                     slack.BUTTON_CONFIG["device_id"])
             threading.Thread(target=sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
                                                             [
@@ -489,22 +489,6 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
                    label, start_color, end_color, current_step,
                    fade_duration_ms)
 
-def setup_google_sheets_logging():
-    """
-    Runs the sheets function to set up Google Sheets logging,
-    then sets the globals LOGGING_SHEETS_SERVICE + SPREADSHEET_ID
-    """
-    global LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID, CONFIG_SHEETS_SERVICE
-    global CONFIG_SPREADSHEET_ID
-
-    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_logging")
-    LOGGING_SHEETS_SERVICE = sheets_service
-    LOGGING_SPREADSHEET_ID = spreadsheet_id
-
-    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_config")
-    CONFIG_SHEETS_SERVICE = sheets_service
-    CONFIG_SPREADSHEET_ID = spreadsheet_id
-
 def display_gui() -> None:
     """
     Displays the TKinter GUI. Essentially the main function
@@ -558,7 +542,11 @@ if __name__ == "__main__":
     create_logfile() # START by creating logfile, necessary for tsprint
     tsprint("Starting slack-Lambda-button gui...")
     set_process_name()
-    setup_google_sheets_logging()
+    
+    _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets("sheets_config")
+    SHEETS_SERVICE = sheets_service
+    SHEETS_SPREADSHEET_ID = spreadsheet_id
+    SHEETS_TABS = tabs
 
     # simpleaudio setup, in main so that it happens after create_logfile and cleans up code a bit
     try:

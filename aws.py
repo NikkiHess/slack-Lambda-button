@@ -190,7 +190,7 @@ def setup_aws() -> boto3.client:
         with open("config/aws.json", "w+", encoding="utf8") as file:
             tsprint("config/aws.json not found or wrong, creating + populating defaults...")
 
-            json.dump(config_defaults, file)
+            json.dump(config_defaults, file, indent=4)
             tsprint("Please fill out config/aws.json before running again.")
 
     config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}

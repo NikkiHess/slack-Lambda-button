@@ -37,7 +37,7 @@ except (FileNotFoundError, json.JSONDecodeError):
     with open("config/slack.json", "w+", encoding="utf8") as file:
         tsprint("config/slack.json not found or wrong, creating + populating defaults...")
 
-        json.dump(config_defaults, file)
+        json.dump(config_defaults, file, indent=4)
         tsprint("Please fill out config/slack.json before running again.")
     exit()
 
@@ -61,7 +61,7 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
     tsprint("Getting device config...")
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
-    all_rows = sheets.get_region(sheets_service, spreadsheet_id,
+    all_rows = sheets.get_region(sheets_service, spreadsheet_id, tab_name="Config",
                                         first_row = 2, last_row = last_row,
                                         first_letter = "A", last_letter = "I")
 
@@ -90,7 +90,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict |
     tsprint("Interaction received, handling...")
 
     # set up Google Sheets and grab the config
-    _, sheets_service, _, _, spreadsheet_id = sheets.setup_sheets("google_config")
+    _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets("sheets_config")
     device_id = BUTTON_CONFIG["device_id"]
 
     device_config = get_config(sheets_service, spreadsheet_id, device_id)

@@ -59,10 +59,13 @@ def open_config(config_name: str) -> TextIO:
 		with open(config_path, "w", encoding="utf8") as config_file:
 			config_contents = {
 				"title": "Your Title Here",
-				"id": ""
+				"id": "",
+				"tabs": {
+					"tab_type_here": "Tab Name Here"
+				}
 			}
 
-			json.dump(config_contents, config_file)
+			json.dump(config_contents, config_file, indent=4)
 		tsprint(f"""{config_path} did not exist, one has been created for you. Please at least fill out the \"title\" field before running again. 
 			  To use an existing spreadsheet, put the \"id\" field in as well from the Google Sheets URL.""")
 
@@ -174,13 +177,12 @@ def create_spreadsheet(sheets_service, name: str = "Test") -> dict:
 
 	return spreadsheet
 
-def get_spreadsheet(sheets_service, drive_service, spreadsheet_id: str) -> dict:
+def get_spreadsheet(sheets_service, spreadsheet_id: str) -> dict:
 	"""
 	Gets a spreadsheet by id
 
 	Args:
 		sheets_service: the Google Sheets service to be used
-		drive_service: the Google Drive service to be used
 		spreadsheet_id (str): the spreadsheet id to access
 
 	Returns:
@@ -249,13 +251,14 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 		except HttpError as e:
 			traceback.format_exc(e)
 
-def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
+def find_first_empty_row(sheets_service, spreadsheet_id: str, tab_name: str = None) -> int:
 	"""
 	Gets the last row of a given spreadsheet
 
 	Args:
 		sheets_service: the Google Sheets service to be used
 		spreadsheet_id (str): the spreadsheet id to access
+		tab_name (str); the tab name to operate on, if any
 
 	Returns:
 	first_empty_row (int): the first empty row in the spreadsheet
@@ -294,7 +297,7 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str) -> int:
 
 	return last_row # Return the number of non-empty rows
 		
-def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
+def add_row(sheets_service, spreadsheet_id: str, cells: List[str], tab_name: str = None):
 	"""
 	Adds a row at the first empty position on the spreadsheet
 
@@ -302,6 +305,7 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 		sheets_service: the Google Sheets service to be used
 		spreadsheet_id (str): the id of the spreadsheet we're operating on
 		cells (list): a list of cell contents to set
+		tab_name (str): the tab name to operate on, if it exists
 
 	Returns:
 		result: the result of the execution
@@ -357,7 +361,8 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str]):
 	tsprint(f"{result.get('updatedCells')} cells added in row {next_row} of spreadsheet {spreadsheet_id}: {cells}")
 	return result
 
-def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row: int = 1,
+def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None, 
+			   first_row: int = 1, last_row: int = 1,
 			   first_letter: str = "A", last_letter: str = "A") -> List[str]:
 	"""
 	Gets a row in a spreadsheet by index (row_idx)
@@ -365,6 +370,7 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 	Params:
 		sheets_service: the Google Sheets service we're using
 		spreadsheet_id (str): the id of the spreadsheet we're working with
+		tab_name (str): the name of the tab to select within, defaults to "Sheet1"
 		first_row (int): the first row that we need to get
 		last_row (int): the last row that we need to get
 		first_letter (str): the first column that we need to get
@@ -374,7 +380,11 @@ def get_region(sheets_service, spreadsheet_id: str, first_row: int = 1, last_row
 	if first_row < 1 or last_row < 1 or first_letter < "A" or last_letter < "A":
 		raise ValueError("Google Sheets starts at A1!")
 
-	sheets_range = f"{first_letter}{first_row}:{last_letter}{last_row}"
+	# the tab name with single quotes
+	tab_name_quotes = f"'{tab_name}'" if tab_name else ""
+
+	# the range to select via the API, including the tab and encompassing row/col
+	sheets_range = f"{tab_name_quotes}{first_letter}{first_row}:{last_letter}{last_row}"
 
 	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
 	cached_region = cached_spreadsheet.get("regions", {}).get(sheets_range) if cached_spreadsheet else None
@@ -418,9 +428,9 @@ def setup_sheets(config_name: str):
 	Returns:
 		config_file: the config file that we created or opened
 		sheets_service: the Google Sheets service we used
-		drive_service: the Google Drive service we used
 		spreadsheet: the spreadsheet gotten/created
 		spreadsheet_id: the spreadsheet's id, for convenience
+		tabs: the tabs listed in the config
 	"""
 
 	tsprint("Setting up Google Sheets...")
@@ -433,19 +443,19 @@ def setup_sheets(config_name: str):
 	config_file = open_config(config_name)
 
 	sheets_service = None
-	drive_service = None
 	spreadsheet = None
 	spreadsheet_id = None
+	tabs = None # the listed tabs as a dict
 
 	try:
 		sheets_service = build("sheets", "v4", credentials=creds)
-		drive_service = build("drive", "v3", credentials=creds)
 
 		# If we've already saved this spreadsheet by name, let's grab it
 		config_data = json.load(config_file)
 		if config_data["id"] != "":
-			spreadsheet = get_spreadsheet(sheets_service, drive_service, config_data["id"])
+			spreadsheet = get_spreadsheet(sheets_service, config_data["id"])
 			spreadsheet_id = config_data["id"]
+			tabs = json.load(config_data["tabs"])
 
 			tsprint(f"Got spreadsheet {spreadsheet_id}")
 
@@ -466,11 +476,11 @@ def setup_sheets(config_name: str):
 	finally:
 		config_file.close()
 
-	return config_file, sheets_service, drive_service, spreadsheet, spreadsheet_id
+	return config_file, sheets_service, spreadsheet, spreadsheet_id, tabs
 
 if __name__ == "__main__":
-	_, sheets_service, drive_service, _, spreadsheet_id = setup_sheets("test")
-	get_spreadsheet(sheets_service, drive_service, spreadsheet_id)
+	_, sheets_service, _, spreadsheet_id, tabs = setup_sheets("test")
+	get_spreadsheet(sheets_service, spreadsheet_id)
 
 	tsprint("")
 	empty = is_spreadsheet_empty(sheets_service, spreadsheet_id)

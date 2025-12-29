@@ -25,7 +25,7 @@ except FileNotFoundError as e:
         print("config/slack.json not found, creating it for you...")
 
         defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
-        json.dump(defaults, file)
+        json.dump(defaults, file, indent=4)
 
 
 CONFIG_DEFAULTS = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
