@@ -23,8 +23,7 @@ from googleapiclient.errors import HttpError
 
 from nikki_utils import tsprint
 
-# The only scope we need is drive.file so we can create files and interact with those files
-SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CACHE = {}
 CACHE_COOLDOWN = 60 * 60 # 60 minutes in seconds
 
@@ -197,7 +196,7 @@ def get_spreadsheet(sheets_service, spreadsheet_id: str) -> dict:
 	cached_contents = cached_spreadsheet.get("contents") if cached_spreadsheet else None
 	contents_expiry = cached_spreadsheet.get("contents_expiry") if cached_spreadsheet else None
 
-	if cached_contents is not None and contents_expiry > time.time():
+	if cached_contents and contents_expiry > time.time():
 		tsprint(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
 		spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
 	else:
@@ -380,11 +379,11 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 	if first_row < 1 or last_row < 1 or first_letter < "A" or last_letter < "A":
 		raise ValueError("Google Sheets starts at A1!")
 
-	# the tab name with single quotes
-	tab_name_quotes = f"'{tab_name}'" if tab_name else ""
-
-	# the range to select via the API, including the tab and encompassing row/col
-	sheets_range = f"{tab_name_quotes}{first_letter}{first_row}:{last_letter}{last_row}"
+	# the range to select via the API, including the tab (if relevant) and encompassing row/col
+	if tab_name:
+		sheets_range = f"'{tab_name}'!{first_letter}{first_row}:{last_letter}{last_row}"
+	else:
+		sheets_range = f"{first_letter}{first_row}:{last_letter}{last_row}"
 
 	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
 	cached_region = cached_spreadsheet.get("regions", {}).get(sheets_range) if cached_spreadsheet else None
@@ -453,9 +452,9 @@ def setup_sheets(config_name: str):
 		# If we've already saved this spreadsheet by name, let's grab it
 		config_data = json.load(config_file)
 		if config_data["id"] != "":
-			spreadsheet = get_spreadsheet(sheets_service, config_data["id"])
 			spreadsheet_id = config_data["id"]
-			tabs = json.load(config_data["tabs"])
+			spreadsheet = get_spreadsheet(sheets_service, config_data["id"])
+			tabs = config_data["tabs"]
 
 			tsprint(f"Got spreadsheet {spreadsheet_id}")
 
@@ -491,6 +490,6 @@ if __name__ == "__main__":
 	first_empty = find_first_empty_row(sheets_service, spreadsheet_id)
 
 	tsprint("")
-	sheets_region = get_region(sheets_service, spreadsheet_id)
-	sheets_region = get_region(sheets_service, spreadsheet_id)
+	sheets_region = get_region(sheets_service, spreadsheet_id, tab_name="Logs")
+	sheets_region = get_region(sheets_service, spreadsheet_id, tab_name="Logs")
 	pass
