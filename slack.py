@@ -74,7 +74,7 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
     sys.exit()
     return device_info
 
-def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict | None:
+def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id, do_post: bool = True) -> dict | None:
     """
     Handles a button press or screen tap, basically just does the main functionality
 
@@ -90,9 +90,7 @@ def handle_interaction(aws_client: boto3.client, do_post: bool = True) -> dict |
     tsprint("Interaction received, handling...")
 
     # set up Google Sheets and grab the config
-    _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets("sheets_config")
     device_id = BUTTON_CONFIG["device_id"]
-
     device_config = get_config(sheets_service, spreadsheet_id, device_id)
 
     device_message = device_config[4]

@@ -180,7 +180,10 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
 
     def worker():
         message_id, channel_id = slack.handle_interaction(
-            slack.lambda_client, do_post
+            slack.lambda_client,
+            SHEETS_SERVICE,
+            SHEETS_SPREADSHEET_ID,
+            do_post=do_post
         )
 
         def gui_update():
