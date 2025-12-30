@@ -282,6 +282,13 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     # this helps determine whether we've received a reply later
     reply_received = False
 
+    def get_datetime() -> str:
+        """returns the datetime formatted for logging"""
+        now = datetime.now()
+        now = now.strftime("%B %d, %Y %I:%M:%S %p")
+
+        return now
+
     # do a timeout countdown
     def countdown():
         nonlocal timeout, reply_received
@@ -338,16 +345,22 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                                                                 SHEETS_SPREADSHEET_ID,
                                                                 slack.BUTTON_CONFIG["device_id"])
                         
-                        threading.Thread(target=sheets.add_row, 
-                                         args=(SHEETS_SERVICE, SHEETS_SPREADSHEET_ID,
-                                                    [
-                                                    get_datetime(),
-                                                    sheets_button_config[3], # gets location
-                                                    "Resolved"
-                                                    ]
-                                                ),
-                                                daemon=True
-                                        ).start()
+                        cells = [
+                            get_datetime(),
+                            sheets_button_config[3], # gets location
+                            "Resolved"
+                        ]
+
+                        threading.Thread(
+                            target=sheets.add_row, 
+                            args = (
+                                SHEETS_SERVICE, 
+                                SHEETS_SPREADSHEET_ID,
+                                cells,
+                                SHEETS_TABS["logging"]
+                            ),
+                            daemon=True
+                        ).start()
 
                         revert_to_main(root, frame, style, do_post)
                         
@@ -366,15 +379,23 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
             sheets_button_config = slack.get_config(SHEETS_SERVICE,
                                                     SHEETS_SPREADSHEET_ID,
                                                     slack.BUTTON_CONFIG["device_id"])
-            threading.Thread(target=sheets.add_row(LOGGING_SHEETS_SERVICE, LOGGING_SPREADSHEET_ID,
-                                                            [
-                                                            get_datetime(),
-                                                            sheets_button_config[3], # gets location
-                                                            "Replied" if reply_received else "Timed Out"
-                                                            ]
-                                                         ),
-                                                         daemon=True
-                            ).start()
+
+            cells = [
+                get_datetime(),
+                sheets_button_config[3], # gets location
+                "Replied" if reply_received else "Timed Out"
+            ]
+
+            threading.Thread(
+                target=sheets.add_row, 
+                args = (
+                    SHEETS_SERVICE, 
+                    SHEETS_SPREADSHEET_ID,
+                    cells,
+                    SHEETS_TABS["logging"]
+                ),
+                daemon=True
+            ).start()
 
             # if we have a pending message or haven't received a reply,
             # we need to time out

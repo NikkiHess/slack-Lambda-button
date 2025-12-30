@@ -143,7 +143,7 @@ def do_oauth_flow() -> Credentials:
 
 	return creds
 
-def create_spreadsheet(sheets_service, name: str = "Test") -> dict:
+def create_spreadsheet(sheets_service, name: str = "Untitled") -> dict:
 	"""
 	Create a new spreadsheet by name, returns the created spreadsheet
 
@@ -196,7 +196,7 @@ def get_spreadsheet(sheets_service, spreadsheet_id: str) -> dict:
 	cached_contents = cached_spreadsheet.get("contents") if cached_spreadsheet else None
 	contents_expiry = cached_spreadsheet.get("contents_expiry") if cached_spreadsheet else None
 
-	if cached_contents and contents_expiry > time.time():
+	if cached_contents is not None and contents_expiry > time.time():
 		tsprint(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
 		spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
 	else:
@@ -211,7 +211,7 @@ def get_spreadsheet(sheets_service, spreadsheet_id: str) -> dict:
 
 	return spreadsheet
 
-def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
+def is_spreadsheet_empty(sheets_service, spreadsheet_id: str, tab_name: str = None) -> bool:
 	"""
 	Returns whether a given spreadsheet (by ID) is empty.
 	For our purposes, this just means that A1 and B1 are empty
@@ -219,31 +219,51 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str) -> bool:
 	Args:
 		sheets_service: the Google Sheets service we're using
 		spreadsheet_id (str): the spreadsheet to check for emptiness
+		tab_name (str): the name of the tab to check, if applicable
+
+	Returns:
+		whether the spreadsheet (tab) is empty
 	"""
 
-	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
-	cached_emptiness = cached_spreadsheet.get("emptiness", {}).get("value") if cached_spreadsheet else None
-	emptiness_expiry = cached_spreadsheet.get("emptiness", {}).get("expiry") if cached_spreadsheet else None
+	tab_key = tab_name or "__default__"
 
-	if cached_emptiness is not None and emptiness_expiry > time.time():
-		tsprint(f"Cached value found for spreadsheet emptiness: {cached_emptiness}")
-		return cached_emptiness
+	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
+	cached_emptiness = (
+		cached_spreadsheet
+		.get("emptiness", {})
+		.get(tab_key)
+		if cached_spreadsheet else None
+	)
+	cached_empty_value = cached_emptiness.get("value", None)
+	emptiness_expiry = cached_emptiness.get("expiry", None)
+
+	if cached_empty_value is not None and emptiness_expiry > time.time():
+		tsprint(f"Cached value found for spreadsheet (tab {tab_name}) emptiness: {cached_empty_value}")
+		return cached_empty_value
 	else:
+		sheets_range = "A1:B1"
+		if tab_name:
+			sheets_range = f"{tab_name}!A1:B1"
+
 		try:
 			result = (
 				sheets_service.spreadsheets()
 				.values().get(
 					spreadsheetId=spreadsheet_id,
-					range="A1:B1"
+					range=sheets_range
 				).execute()
 			)
 
 			values = result.get("values", [])
 			empty = (len(values) == 0)
 
-			emptiness_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("emptiness", {})
-			emptiness_dict["value"] = empty
-			emptiness_dict["expiry"] = time.time() + CACHE_COOLDOWN
+			spreadsheet_cache = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
+			first_empty_cache = spreadsheet_cache.setdefault("emptiness", {})
+			first_empty_cache[tab_key] = {
+				"value": empty,
+				"expiry": time.time() + CACHE_COOLDOWN
+			}
+			
 			tsprint(f"Spreadsheet {spreadsheet_id} {'is' if empty else 'is not'} empty")
 
 			return empty
@@ -262,39 +282,54 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str, tab_name: str = No
 	Returns:
 	first_empty_row (int): the first empty row in the spreadsheet
 	"""
-	tsprint(f"Looking for first empty row in spreadsheet {spreadsheet_id}")
+	tsprint(f"Looking for first empty row in spreadsheet {spreadsheet_id} tab {tab_name}")
+
+	tab_key = tab_name or "__default__"
 
 	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
-	cached_index = cached_spreadsheet.get("first_empty_row", {}).get("index") if cached_spreadsheet else None
-	index_expiry = cached_spreadsheet.get("first_empty_row", {}).get("expiry") if cached_spreadsheet else None
+	cached_tab = (
+		cached_spreadsheet
+		.get("first_empty_row", {})
+		.get(tab_key)
+		if cached_spreadsheet else None
+	)
+
+	cached_index = cached_tab.get("index") if cached_tab else None
+	index_expiry = cached_tab.get("expiry") if cached_tab else None
 
 	if cached_index is not None and index_expiry > time.time():
-		last_row = cached_index
+		first_empty = cached_index
 
-		tsprint(f"Cached value found for spreadsheet {spreadsheet_id} first empty row: {last_row}")
+		tsprint(f"Cached value found for spreadsheet {spreadsheet_id} first empty row: {first_empty}")
 	else:
-		range_ = "A:A"
+		sheets_range = "A:A"
+		if tab_name:
+			sheets_range = f"'{tab_name}'!A:A"
 
 		result = (
 			sheets_service.spreadsheets()
 			.values()
 			.get(
 				spreadsheetId=spreadsheet_id,
-				range=range_
+				range=sheets_range
 			)
 			.execute()
 		)
 
 		values = result.get("values", [])
-		last_row = len(values) + 1
+		first_empty = len(values) + 1
 
-		index_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("first_empty_row", {})
-		index_dict["index"] = last_row
-		index_dict["expiry"] = time.time() + CACHE_COOLDOWN
+		# write to cache
+		spreadsheet_cache = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
+		first_empty_cache = spreadsheet_cache.setdefault("first_empty_row", {})
+		first_empty_cache[tab_key] = {
+			"index": first_empty,
+			"expiry": time.time() + CACHE_COOLDOWN
+		}
 
-		tsprint(f"First empty row for spreadsheet {spreadsheet_id} is {last_row}")
+		tsprint(f"First empty row for spreadsheet {spreadsheet_id} tab {tab_name} is {first_empty}")
 
-	return last_row # Return the number of non-empty rows
+	return first_empty # Return the number of non-empty rows
 		
 def add_row(sheets_service, spreadsheet_id: str, cells: List[str], tab_name: str = None):
 	"""
@@ -309,55 +344,58 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str], tab_name: str
 	Returns:
 		result: the result of the execution
 	"""
+	tab_key = tab_name or "__default__"
 
-	next_row = find_first_empty_row(sheets_service, spreadsheet_id)
+	next_row = find_first_empty_row(sheets_service, spreadsheet_id, tab_name)
 
 	final_letter = len(cells) - 1
 	final_letter += ord('A')
 	final_letter = chr(final_letter) # 1 = A, 2 = B, etc.
 
-	values = [
-		cells
-	]
+	# the api-formatted body, containing cell values
+	body = {"values": [cells]}
 
-	body = {"values": values}
+	# the range to select via the API, including the tab (if relevant) and encompassing row/col
+	sheets_range = f"A{next_row}:{final_letter}{next_row}"
+	if tab_name:
+		sheets_range = f"'{tab_name}'!{sheets_range}"
 
 	result = (
 		sheets_service.spreadsheets()
 		.values()
 		.update(
 			spreadsheetId=spreadsheet_id,
-			range=f"A{next_row}:{final_letter}{next_row}",
-			valueInputOption="USER_ENTERED",
+			range=sheets_range,
+			valueInputOption="USER_ENTERED", # follow the same rules as if a user entered this info on the webapp
 			body=body
 		)
 		.execute()
 	)
 
-	# update cache
 	spreadsheet_cache = CACHE["spreadsheets"].setdefault(spreadsheet_id, {})
 
-	# update cache value for first_empty_row
-	spreadsheet_cache["first_empty_row"] = {
-		"value": next_row + 1,
-        "expiry": time.time() + CACHE_COOLDOWN
-    }
+	# update first empty row
+	spreadsheet_cache = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
+	first_empty_cache = spreadsheet_cache.setdefault("first_empty_row", {})
+	first_empty_cache[tab_key] = {
+		"index": next_row + 1,
+		"expiry": time.time() + CACHE_COOLDOWN
+	}
 
+    # update emptiness, definitely not empty anymore
+	first_empty_cache = spreadsheet_cache.setdefault("emptiness", {})
+	first_empty_cache[tab_key] = {
+		"value": False,
+		"expiry": time.time() + CACHE_COOLDOWN
+	}
+
+	# invalidate regions cache
 	regions_cache = spreadsheet_cache.get("regions", {})
-	for key, entry in regions_cache.items():
-		first_row, last_row, first_letter, last_letter = key
-		if last_row >= next_row:
-            # Extend the cached region with the new row
-			entry["value"].append(cells)
-			entry["expiry"] = time.time() + CACHE_COOLDOWN
+	if tab_key in regions_cache:
+		del regions_cache[tab_key]
 
-    # Update "emptiness" — definitely not empty anymore
-	spreadsheet_cache["emptiness"] = {
-        "value": False,
-        "expiry": time.time() + CACHE_COOLDOWN
-    }
 
-	tsprint(f"{result.get('updatedCells')} cells added in row {next_row} of spreadsheet {spreadsheet_id}: {cells}")
+	tsprint(f"{result.get('updatedCells')} cells added in row {next_row} of spreadsheet {spreadsheet_id} tab {tab_name}: {cells}")
 	return result
 
 def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None, 
@@ -380,17 +418,21 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 		raise ValueError("Google Sheets starts at A1!")
 
 	# the range to select via the API, including the tab (if relevant) and encompassing row/col
+	sheets_range = f"{first_letter}{first_row}:{last_letter}{last_row}"
 	if tab_name:
-		sheets_range = f"'{tab_name}'!{first_letter}{first_row}:{last_letter}{last_row}"
-	else:
-		sheets_range = f"{first_letter}{first_row}:{last_letter}{last_row}"
+		sheets_range = f"'{tab_name}'!{sheets_range}"
 
-	cached_spreadsheet = CACHE.get("spreadsheets", {}).get(spreadsheet_id, None)
-	cached_region = cached_spreadsheet.get("regions", {}).get(sheets_range) if cached_spreadsheet else None
+	tab_key = tab_name or "__default__"
+
+	spreadsheet_cache = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
+	regions_cache = spreadsheet_cache.setdefault("regions", {})
+	tab_regions = regions_cache.setdefault(tab_key, {})
+
+	cached_region = tab_regions.get(sheets_range)
 	region_expiry = cached_region.get("expiry") if cached_region else None
 
-	if cached_region is not None and region_expiry > time.time():
-		tsprint(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id}.")
+	if cached_region and region_expiry > time.time():
+		tsprint(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id} tab {tab_name}.")
 		return cached_region["contents"]
 	else:
 		result = (
@@ -410,10 +452,11 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 
 		tsprint(f"Contents for region {sheets_range} retrieved. Caching...")
 
-		region_dict = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {}).setdefault("regions", {})
-		region_dict = region_dict.setdefault(sheets_range, {})
-		region_dict["contents"] = contents
-		region_dict["expiry"] = time.time() + CACHE_COOLDOWN
+
+		tab_regions[sheets_range] = {
+			"contents": contents,
+			"expiry": time.time() + CACHE_COOLDOWN
+		}
 
 		return contents
 

@@ -18,7 +18,7 @@ import boto3
 
 import sheets
 import aws
-from nikki_util import tsprint as tsprint
+from nikki_utils import tsprint
 
 lambda_client, sqs_client = aws.setup_aws()
 
