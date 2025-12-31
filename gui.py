@@ -17,6 +17,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkFont
 import re
+import sys
 
 # my modules
 import process
@@ -586,13 +587,19 @@ if __name__ == "__main__":
 
     # simpleaudio setup, in main so that it happens after create_logfile and cleans up code a bit
     try:
-        import simpleaudio as saudio
-        INTERACT_SOUND = saudio.WaveObject.from_wave_file("audio/send.wav")
-        RECEIVE_SOUND = saudio.WaveObject.from_wave_file("audio/receive.wav")
-        RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
-        RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
-        is_simpleaudio_installed = True
-        tsprint("simpleaudio loaded successfully")
+        # MacOS does NOT like simpleaudio
+        # neither does Windows :/
+        # TODO: is there a better solution?
+        if sys.platform != "darwin":
+            import simpleaudio as saudio
+            INTERACT_SOUND = saudio.WaveObject.from_wave_file("audio/send.wav")
+            RECEIVE_SOUND = saudio.WaveObject.from_wave_file("audio/receive.wav")
+            RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
+            RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
+            is_simpleaudio_installed = True
+            tsprint("simpleaudio loaded successfully")
+        else:
+            raise ImportError() # can't import properly
     except ImportError:
         tsprint("WARNING: simpleaudio not installed, audio will not play")
 
