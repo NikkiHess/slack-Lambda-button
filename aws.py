@@ -207,11 +207,11 @@ def setup_aws() -> boto3.client:
                     json.dump(config_defaults, write_file)
     except (FileNotFoundError, json.JSONDecodeError):
         with open("config/slack.json", "w+", encoding="utf8") as file:
-            tsprint("config/slack.json not found or wrong, creating + populating defaults.")
+            tsprint("ERROR: config/slack.json not found or wrong, creating + populating defaults.")
 
             json.dump(config_defaults, file)
             tsprint("Please fill out config/slack.json before running again.")
-        exit()
+        exit(1)
 
     access_key = AWS_CONFIG["aws_access_key"]
     secret = AWS_CONFIG["aws_secret"]

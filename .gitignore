@@ -1,12 +1,9 @@
 # Custom
-aws.json
 config/
-package.zip
+config_old/
+oauth/
 package/
-slack.json
-slackLambda-dev-aws.zip
-slack-lambda-button deployment.zip
-*.log
+logs/
 
 # STANDARD PYTHON GITIGNORE
 

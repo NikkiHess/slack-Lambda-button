@@ -1,0 +1,7 @@
+{
+    "id": "google_sheets_id_here",
+    "tabs": {
+        "config": "config_tab_name_here",
+        "logging": "logging_tab_name_here"
+    }
+}

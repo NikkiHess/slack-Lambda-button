@@ -101,7 +101,7 @@ def preload_frames_lazy():
                 except EOFError:
                     # if we can't load any more frames, get outta here
                     break
-            tsprint("Background frames loaded!")
+            tsprint("Custom animation GIF background frames loaded!")
             frames_ready = True
 
     threading.Thread(target=worker, daemon=True).start()
@@ -586,7 +586,7 @@ if __name__ == "__main__":
     tsprint("Starting slack-Lambda-button gui.")
     process.set_process_name_linux()
     
-    _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets("sheets_config")
+    _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets("google_config")
     SHEETS_SERVICE = sheets_service
     SHEETS_SPREADSHEET_ID = spreadsheet_id
     SHEETS_TABS = tabs

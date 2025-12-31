@@ -39,11 +39,11 @@ try:
                 json.dump(CONFIG_DEFAULTS, write_file)
 except (FileNotFoundError, json.JSONDecodeError):
     with open("config/aws.json", "w+", encoding="utf8") as file:
-        print("config/aws.json not found or wrong, creating + populating defaults...")
+        print("ERROR: config/aws.json not found or wrong, creating + populating defaults...")
 
         json.dump(CONFIG_DEFAULTS, file)
         print("Please fill out config/aws.json before running again.")
-    exit()
+    exit(1)
 
 ACCESS_KEY = AWS_CONFIG["aws_access_key"]
 SECRET = AWS_CONFIG["aws_secret"]

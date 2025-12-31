@@ -1,0 +1,6 @@
+{
+    "aws_access_key": "aws_access_key_here", 
+    "aws_secret": "aws_secret_here",
+    "region": "aws_region_here",
+    "sns_arn": "aws_sns_arn_here"
+}

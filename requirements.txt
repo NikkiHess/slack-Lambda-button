@@ -3,7 +3,7 @@ requests
 pillow
 simpleaudio
 
-# my library
+# my libraries
 nikki-utils
 
 # google api + auth

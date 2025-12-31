@@ -35,11 +35,11 @@ try:
                 json.dump(config_defaults, write_file)
 except (FileNotFoundError, json.JSONDecodeError):
     with open("config/slack.json", "w+", encoding="utf8") as file:
-        tsprint("config/slack.json not found or wrong, creating + populating defaults.")
+        tsprint("ERROR: config/slack.json not found or wrong, creating + populating defaults.")
 
         json.dump(config_defaults, file, indent=4)
         tsprint("Please fill out config/slack.json before running again.")
-    exit()
+    exit(1)
 
 BUTTON_CONFIG = slack_config["button_config"]
 BOT_OAUTH_TOKEN = slack_config["bot_oauth_token"]
@@ -71,8 +71,8 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
             tsprint(f"Got device info: {row}")
             return row
     
-    tsprint(f"Unable to get device config. Device {device_id} was not listed. Exiting.")
-    sys.exit()
+    tsprint(f"ERROR: Unable to get device config. Device {device_id} was not listed. Exiting.")
+    exit(1)
     return device_info
 
 def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id, do_post: bool = True) -> dict | None:
