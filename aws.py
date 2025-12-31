@@ -27,7 +27,7 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
         dev (bool): whether we're using the dev AWS instance
     """
 
-    tsprint("Posting message to Slack via AWS...")
+    tsprint("Posting message to Slack via AWS.")
 
     payload = {
         "body": {
@@ -67,7 +67,7 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         dev (bool): whether we're using the dev AWS instance
     """
 
-    tsprint(f"Marking message {message_id} as timed out...")
+    tsprint(f"Marking message {message_id} as timed out.")
 
     payload = {
         "body": {
@@ -99,7 +99,7 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
         dev (bool): whether we're using the dev AWS instance
     """
 
-    tsprint(f"Marking message {message_id} as replied...")
+    tsprint(f"Marking message {message_id} as replied.")
 
     payload = {
         "body": {
@@ -130,10 +130,12 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
     """
     global LATEST_MESSAGE, STOP_THREAD
 
+    tsprint(f"Starting SQS poll loop for device {device_id}")
     queue_url = "https://sqs.us-east-2.amazonaws.com/225753854445/slackLambda-dev.fifo"
 
     while True:
         if STOP_THREAD:
+            tsprint("Stopping SQS poll loop.")
             STOP_THREAD = False
             break
 
@@ -164,6 +166,7 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
                 QueueUrl=queue_url,
                 ReceiptHandle=message["ReceiptHandle"]
             )
+            tsprint("Deleted SQS message from queue.")
 
 def setup_aws() -> boto3.client:
     """
@@ -173,7 +176,7 @@ def setup_aws() -> boto3.client:
         the Lambda client, the SQS client
     """
 
-    tsprint("Setting up AWS...")
+    tsprint("Setting up AWS.")
 
     global AWS_CONFIG, SLACK_CONFIG, SQS_CLIENT
 
@@ -188,7 +191,7 @@ def setup_aws() -> boto3.client:
                     json.dump(config_defaults, write_file)
     except (FileNotFoundError, json.JSONDecodeError):
         with open("config/aws.json", "w+", encoding="utf8") as file:
-            tsprint("config/aws.json not found or wrong, creating + populating defaults...")
+            tsprint("config/aws.json not found or wrong, creating + populating defaults.")
 
             json.dump(config_defaults, file, indent=4)
             tsprint("Please fill out config/aws.json before running again.")
@@ -204,7 +207,7 @@ def setup_aws() -> boto3.client:
                     json.dump(config_defaults, write_file)
     except (FileNotFoundError, json.JSONDecodeError):
         with open("config/slack.json", "w+", encoding="utf8") as file:
-            tsprint("config/slack.json not found or wrong, creating + populating defaults...")
+            tsprint("config/slack.json not found or wrong, creating + populating defaults.")
 
             json.dump(config_defaults, file)
             tsprint("Please fill out config/slack.json before running again.")
@@ -230,7 +233,8 @@ def setup_aws() -> boto3.client:
         region_name=region
     )
 
-    tsprint("AWS successfully set-up")
+    tsprint("AWS successfully set-up.")
+    tsprint("Returning AWS clients.")
 
     return client, SQS_CLIENT
 

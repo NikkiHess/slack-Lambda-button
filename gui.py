@@ -87,6 +87,8 @@ def preload_frames_lazy():
         gif.seek(0)
         with frames_lock: # lock to prevent race conditions (not guaranteed)
             frames.append(ImageTk.PhotoImage(gif.copy()))
+    tsprint("Preloaded first animation frame.")
+    tsprint("Starting lazy background loader thread.")
 
     def worker():
         global frames_ready
@@ -99,7 +101,8 @@ def preload_frames_lazy():
                 except EOFError:
                     # if we can't load any more frames, get outta here
                     break
-        frames_ready = True
+            tsprint("Background frames loaded!")
+            frames_ready = True
 
     threading.Thread(target=worker, daemon=True).start()
 
@@ -180,12 +183,14 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     root.unbind("<ButtonPress-1>") # unbind clicks upon interaction
 
     def worker():
+        tsprint(f"GUI handling interaction (do_post={do_post})")
         message_id, channel_id = slack.handle_interaction(
             slack.lambda_client,
             SHEETS_SERVICE,
             SHEETS_SPREADSHEET_ID,
             do_post=do_post
         )
+        tsprint(f"GUI received interaction result: message_id={message_id} channel_id={channel_id}")
 
         def gui_update():
             if message_id != "statusCode":
@@ -204,9 +209,9 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                 if is_simpleaudio_installed:
                     try:
                         INTERACT_SOUND.play()
-                        tsprint("Played interact sound")
+                        tsprint("Played interact sound.")
                     except Exception as e:
-                        tsprint(f"ERROR: couldn't play interact sound:\n{e}")
+                        tsprint(f"ERROR: Could not play interact sound:\n{e}")
             elif do_post:
                 ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.",
                                             style="Escape.TLabel")
@@ -214,9 +219,9 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
                 if is_simpleaudio_installed:
                     try:
                         RATELIMIT_SOUND.play()
-                        tsprint("Played rate limit sound")
+                        tsprint("Played rate limit sound.")
                     except Exception as e:
-                        tsprint(f"ERROR: couldn't play rate limit sound:\n{e}")
+                        tsprint(f"ERROR: Could not play rate limit sound:\n{e}")
                 root.after(3 * 1000, fade_label, root,
                            ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
 
@@ -337,9 +342,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                         if is_simpleaudio_installed:
                             try:
                                 RECEIVE_SOUND.play()
-                                tsprint("Played receive sound")
+                                tsprint("Played receive sound.")
                             except Exception as e:
-                                tsprint(f"ERROR: couldn't play receive sound:\n{e}")
+                                tsprint(f"ERROR: Could not play receive sound:\n{e}")
                     # else revert to main and cancel this countdown
                     else:
                         sheets_button_config = slack.get_config(SHEETS_SERVICE,
@@ -368,9 +373,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                         if is_simpleaudio_installed:
                             try:
                                 RESOLVED_SOUND.play()
-                                tsprint("Played resolved sound")
+                                tsprint("Played resolved sound.")
                             except Exception as e:
-                                tsprint(f"ERROR: couldn't play resolved sound:\n{e}")
+                                tsprint(f"ERROR: Could not play resolved sound:\n{e}")
 
                         aws.LATEST_MESSAGE = None
 
@@ -565,10 +570,11 @@ def display_gui() -> None:
     root.after(escape_display_period_ms, fade_label, root,
                escape_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
 
+    tsprint("All setup complete.")
+    tsprint("Running TKinter mainloop.")
+
     # run
     root.mainloop()
-
-    tsprint("Running TKinter mainloop...")
 
 if __name__ == "__main__":
     # set logfile name before any tsprint calls occur
@@ -577,7 +583,7 @@ if __name__ == "__main__":
     now = re.sub(r"\/|:", "-", now)
     set_log_file(f"logs/{now}.log")
 
-    tsprint("Starting slack-Lambda-button gui...")
+    tsprint("Starting slack-Lambda-button gui.")
     process.set_process_name_linux()
     
     _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets("sheets_config")
@@ -597,11 +603,11 @@ if __name__ == "__main__":
             RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
             RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
             is_simpleaudio_installed = True
-            tsprint("simpleaudio loaded successfully")
+            tsprint("simpleaudio loaded successfully.")
         else:
             raise ImportError() # can't import properly
     except ImportError:
-        tsprint("WARNING: simpleaudio not installed, audio will not play")
+        tsprint("WARNING: simpleaudio not installed, audio will not play.")
 
     # in main so that it happens after create_logfile
     import slack

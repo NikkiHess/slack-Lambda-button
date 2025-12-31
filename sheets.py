@@ -32,7 +32,7 @@ try:
 	with open("config/credentials.json", "r", encoding="utf8") as file:
 		json.load(file)
 except (FileNotFoundError, json.JSONDecodeError):
-	tsprint("config/credentials.json not found or incorrect, please download from Google Cloud...")
+	tsprint("config/credentials.json not found or incorrect, please download from Google Cloud.")
 	exit()
 
 def open_config(config_name: str) -> TextIO:
@@ -60,7 +60,8 @@ def open_config(config_name: str) -> TextIO:
 				"title": "Your Title Here",
 				"id": "",
 				"tabs": {
-					"tab_type_here": "Tab Name Here"
+					"config": "Config",
+					"logging": "Logs"
 				}
 			}
 
@@ -105,6 +106,7 @@ def do_oauth_flow() -> Credentials:
 		creds (Credentials): OAuth2 user credentials
 	"""
 
+	tsprint("Starting Google OAuth flow.")
 	creds = None
 
 	if os.path.exists("config/token.json"):
@@ -121,7 +123,7 @@ def do_oauth_flow() -> Credentials:
 				creds.refresh(Request())
 				tsprint("Google Cloud token refreshed.")
 			except RefreshError: # google RefreshError, need new token
-				tsprint("New Google Cloud token needed, running OAuth flow...")
+				tsprint("New Google Cloud token needed, running OAuth flow.")
 
 				os.remove("config/token.json") # clear expired token
 				flow = InstalledAppFlow.from_client_secrets_file(
@@ -129,7 +131,7 @@ def do_oauth_flow() -> Credentials:
 				)
 				creds = flow.run_local_server(port=0)
 		else:
-			tsprint("New Google Cloud token needed, running OAuth flow...")
+			tsprint("New Google Cloud token needed, running OAuth flow.")
 
 			flow = InstalledAppFlow.from_client_secrets_file(
 				"config/credentials.json", SCOPES
@@ -138,7 +140,7 @@ def do_oauth_flow() -> Credentials:
 		
 		# Save the credentials for the next run
 		with open("config/token.json", "w", encoding="utf8") as token:
-			tsprint("Writing new token to file...")
+			tsprint("Writing new token to file.")
 			token.write(creds.to_json())
 
 	return creds
@@ -155,7 +157,7 @@ def create_spreadsheet(sheets_service, name: str = "Untitled") -> dict:
 		spreadsheet (dict): the created spreadsheet
 	"""
 
-	tsprint(f"Creating a new spreadsheet with name {name}...")
+	tsprint(f"Creating a new spreadsheet with name {name}")
 
 	# Properties to create a spreadsheet with
 	spreadsheet = {
@@ -188,7 +190,7 @@ def get_spreadsheet(sheets_service, spreadsheet_id: str) -> dict:
 		spreadsheet (dict): the retrieved spreadsheet, if any
 	"""
 
-	tsprint(f"Getting spreadsheet {spreadsheet_id}...")
+	tsprint(f"Getting spreadsheet {spreadsheet_id}")
 
 	spreadsheet = None
 
@@ -197,12 +199,12 @@ def get_spreadsheet(sheets_service, spreadsheet_id: str) -> dict:
 	contents_expiry = cached_spreadsheet.get("contents_expiry") if cached_spreadsheet else None
 
 	if cached_contents is not None and contents_expiry > time.time():
-		tsprint(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving...")
+		tsprint(f"Spreadsheet {spreadsheet_id} found in cache. Retrieving.")
 		spreadsheet = CACHE["spreadsheets"][spreadsheet_id]["contents"]
 	else:
 		spreadsheet = sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
 		tsprint(f"Got existing spreadsheet with ID: {spreadsheet_id}")
-		tsprint("Caching spreadsheet...")
+		tsprint("Caching spreadsheet.")
 
 		# we need to make sure the structure exists first by setting a default
 		cached_spreadsheet = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
@@ -264,7 +266,7 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str, tab_name: str = No
 				"expiry": time.time() + CACHE_COOLDOWN
 			}
 			
-			tsprint(f"Spreadsheet {spreadsheet_id} {'is' if empty else 'is not'} empty")
+			tsprint(f"Spreadsheet {spreadsheet_id} {'is' if empty else 'is not'} empty.")
 
 			return empty
 		except HttpError as e:
@@ -422,6 +424,8 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 	if tab_name:
 		sheets_range = f"'{tab_name}'!{sheets_range}"
 
+	tsprint(f"Retrieving region {sheets_range} from spreadsheet {spreadsheet_id}")
+
 	tab_key = tab_name or "__default__"
 
 	spreadsheet_cache = CACHE.setdefault("spreadsheets", {}).setdefault(spreadsheet_id, {})
@@ -432,7 +436,7 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 	region_expiry = cached_region.get("expiry") if cached_region else None
 
 	if cached_region and region_expiry > time.time():
-		tsprint(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id} tab {tab_name}.")
+		tsprint(f"Cached region {sheets_range} found in spreadsheet {spreadsheet_id} tab {tab_name}")
 		return cached_region["contents"]
 	else:
 		result = (
@@ -450,7 +454,7 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 		except KeyError: # if the region is empty, there's no values
 			contents = []
 
-		tsprint(f"Contents for region {sheets_range} retrieved. Caching...")
+		tsprint(f"Contents for region {sheets_range} retrieved. Caching.")
 
 
 		tab_regions[sheets_range] = {
@@ -475,7 +479,7 @@ def setup_sheets(config_name: str):
 		tabs: the tabs listed in the config
 	"""
 
-	tsprint("Setting up Google Sheets...")
+	tsprint("Setting up Google Sheets.")
 
 	# Log in using OAuth
 	creds = do_oauth_flow()

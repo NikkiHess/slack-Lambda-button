@@ -35,7 +35,7 @@ try:
                 json.dump(config_defaults, write_file)
 except (FileNotFoundError, json.JSONDecodeError):
     with open("config/slack.json", "w+", encoding="utf8") as file:
-        tsprint("config/slack.json not found or wrong, creating + populating defaults...")
+        tsprint("config/slack.json not found or wrong, creating + populating defaults.")
 
         json.dump(config_defaults, file, indent=4)
         tsprint("Please fill out config/slack.json before running again.")
@@ -43,6 +43,7 @@ except (FileNotFoundError, json.JSONDecodeError):
 
 BUTTON_CONFIG = slack_config["button_config"]
 BOT_OAUTH_TOKEN = slack_config["bot_oauth_token"]
+tsprint(f"Slack config loaded. device_id={BUTTON_CONFIG.get('device_id', '')}")
 
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
@@ -58,7 +59,7 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
         device_id (str): the id of this specific device, received from slack.json
     """
 
-    tsprint("Getting device config...")
+    tsprint("Getting device config.")
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
     all_rows = sheets.get_region(sheets_service, spreadsheet_id, tab_name="Config",
@@ -87,7 +88,7 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
         the posted message id, if there is one OR None
     """
     
-    tsprint("Interaction received, handling...")
+    tsprint("Interaction received, handling.")
 
     # set up Google Sheets and grab the config
     device_id = BUTTON_CONFIG["device_id"]
@@ -131,9 +132,11 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
             result_container["message_id"] = message_id
             result_container["channel_id"] = channel_id
 
+        tsprint(f"Starting AWS worker thread to post message for device {device_id}")
         thread = threading.Thread(target=aws_worker, daemon=True)
         thread.start()
         thread.join()  # wait for the thread to finish so we can return values
+        tsprint(f"AWS message posting finished for device {device_id}: message_id={result_container.get('message_id')} channel_id={result_container.get('channel_id')}")
 
         return result_container.get("message_id"), result_container.get("channel_id")
     
