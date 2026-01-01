@@ -69,3 +69,5 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
     return config_data
 
 get_and_verify_config_data("config/test.json")
+
+# TODO: apply this to every relevant config (file from config dir)
