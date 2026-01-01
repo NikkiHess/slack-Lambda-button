@@ -7,13 +7,13 @@ Author:
 Nikki Hess (nkhess@umich.edu)
 """
 
+# built-in
 import os
 import json
 import time
-from pathlib import Path
-from typing import List, TextIO
 import traceback
 
+# PyPi
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
@@ -21,87 +21,20 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+# my modules
 from nikki_utils import tsprint
+import config
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CACHE = {}
 CACHE_COOLDOWN = 60 * 60 # 60 minutes in seconds
 
-try:
-	with open("oauth/google_credentials.json", "r", encoding="utf8") as file:
-		json.load(file)
-except (FileNotFoundError, json.JSONDecodeError):
-	tsprint("ERROR: oauth/google_credentials.json not found or incorrect, please download from Google Cloud.")
-	exit(1)
-
-def open_config(config_name: str) -> TextIO:
-	"""
-	Opens the config/google.json file. Creates one if it doesn't exist.
-
-	Args:
-		config_name (str): the name of the config file to open
-
-	Returns:
-		config_file (TextIO): the config file that we opened
-	"""
-
-	config_dir = "config"
-
-	# make sure we have a config directory first (we should...)
-	if not os.path.exists(config_dir):
-		Path(config_dir).mkdir(parents=True, exist_ok=True)
-
-	# if there's no google.json, create one and tell the user
-	config_path = f"{config_dir}/{config_name}.json"
-	if not os.path.exists(config_path):
-		with open(config_path, "w", encoding="utf8") as config_file:
-			config_contents = {
-				"title": "Your Title Here",
-				"id": "",
-				"tabs": {
-					"config": "Config",
-					"logging": "Logs"
-				}
-			}
-
-			json.dump(config_contents, config_file, indent=4)
-		tsprint(f"ERROR: {config_path} did not exist, one has been created for you. Fill it out before running again.")
-
-		exit(1)
-	else:
-		config_file = open(config_path, "r+", encoding="utf8")
-		config_data = json.load(config_file)
-
-		# make sure all required fields are present
-		required_fields = ["id"]
-		missing_fields = [field for field in required_fields if field not in config_data]
-
-		if missing_fields:
-			tsprint(f"ERROR: Config file is missing the following fields: {missing_fields}")
-
-			# add missing fields
-			for field in missing_fields:
-				config_data[field] = "" if field == "id" else "Your Title Here"
-
-			# writeback
-			config_file.seek(0)
-			json.dump(config_data, config_file)
-			config_file.truncate()
-
-			tsprint("The missing fields have been added with default values.")
-			exit(1)
-
-		# note to self: DON'T FORGET TO SEEK ;-;
-		config_file.seek(0)
-
-		return config_file
-
 def do_oauth_flow() -> Credentials:
 	"""
 	Log a user in and return the credentials needed
 
-	Args:
-		creds (Credentials): OAuth2 user credentials
+	Returns:
+		creds (Credentials): OAuth2 user credentials (token)
 	"""
 
 	tsprint("Starting Google OAuth flow.")
@@ -112,7 +45,6 @@ def do_oauth_flow() -> Credentials:
 			creds = Credentials.from_authorized_user_file("oauth/google_token.json", SCOPES)
 		except (ValueError, json.JSONDecodeError):
 			pass # just don't get creds
-	
 	
 	# If there are no (valid) credentials available, let the user log in.
 	if not creds or not creds.valid:
@@ -331,14 +263,14 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str, tab_name: str = No
 
 	return first_empty # Return the number of non-empty rows
 		
-def add_row(sheets_service, spreadsheet_id: str, cells: List[str], tab_name: str = None):
+def add_row(sheets_service, spreadsheet_id: str, cells: list[str], tab_name: str = None):
 	"""
 	Adds a row at the first empty position on the spreadsheet
 
 	Args:
 		sheets_service: the Google Sheets service to be used
 		spreadsheet_id (str): the id of the spreadsheet we're operating on
-		cells (list): a list of cell contents to set
+		cells (list[str]): a list of cell contents to set
 		tab_name (str): the tab name to operate on, if it exists
 
 	Returns:
@@ -400,7 +332,7 @@ def add_row(sheets_service, spreadsheet_id: str, cells: List[str], tab_name: str
 
 def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None, 
 			   first_row: int = 1, last_row: int = 1,
-			   first_letter: str = "A", last_letter: str = "A") -> List[str]:
+			   first_letter: str = "A", last_letter: str = "A") -> list[str]:
 	"""
 	Gets a row in a spreadsheet by index (row_idx)
 
@@ -462,12 +394,9 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 
 		return contents
 
-def setup_sheets(config_name: str):
+def setup_sheets():
 	"""
 	Sets up a Google Sheet using the configuration provided.
-
-	Args:
-		config_name (str): the name of the config file to open
 
 	Returns:
 		config_file: the config file that we created or opened
@@ -484,7 +413,11 @@ def setup_sheets(config_name: str):
 
 	tsprint("Google Cloud OAuth flow complete.")
 
-	config_file = open_config(config_name)
+	# verify that Google credentials file exists
+	config.get_and_verify_config_data("oauth/google_credentials.json")
+
+	config_name = "config/google_config.json"
+	config_file = config.get_and_verify_config_data(config_name)
 
 	sheets_service = None
 	spreadsheet = None
@@ -493,31 +426,6 @@ def setup_sheets(config_name: str):
 
 	try:
 		sheets_service = build("sheets", "v4", credentials=creds)
-
-		# If we've already saved this spreadsheet by name, let's grab it
-		config_data = json.load(config_file)
-		if config_data["id"] != "":
-			spreadsheet_id = config_data["id"]
-			spreadsheet = get_spreadsheet(sheets_service, config_data["id"])
-			tabs = config_data["tabs"]
-
-			tsprint(f"Got spreadsheet {spreadsheet_id}")
-		else:
-			tsprint(f"ERROR: You must specify a spreadsheet id in config/{config_name}.json")
-			exit(1)
-
-		# At this point, if there is no spreadsheet we need to create one
-		# if spreadsheet is None:
-		# 	spreadsheet = create_spreadsheet(sheets_service, config_data["title"])
-
-		# 	config_data["id"] = spreadsheet.get("spreadsheetId")
-		# 	config_file.seek(0)
-		# 	json.dump(config_data, config_file)
-		# 	config_file.truncate()
-
-		# 	spreadsheet_id = config_data["id"]
-
-		# 	tsprint(f"Created new spreadsheet with ID: {spreadsheet_id}")
 	except HttpError as error:
 		tsprint(error)
 	finally:

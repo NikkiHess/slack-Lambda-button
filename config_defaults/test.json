@@ -1,0 +1,7 @@
+{
+    "webhook_url": "slack_webhook_url_here",
+    "bot_oauth_token": "slack_oauth_token_here",
+    "button_config": {
+        "device_id": "button_device_id_here"
+    }
+}
