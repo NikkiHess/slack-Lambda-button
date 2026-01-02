@@ -73,6 +73,7 @@ def do_oauth_flow() -> Credentials:
 			tsprint("Writing new token to file.")
 			token.write(creds.to_json())
 
+	tsprint("Google Cloud OAuth flow complete.")
 	return creds
 
 def create_spreadsheet(sheets_service, name: str = "Untitled") -> dict:
@@ -410,8 +411,6 @@ def setup_sheets():
 
 	# Log in using OAuth
 	creds = do_oauth_flow()
-
-	tsprint("Google Cloud OAuth flow complete.")
 
 	# verify that Google credentials file exists
 	config.get_and_verify_config_data("oauth/google_credentials.json", False)

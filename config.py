@@ -27,6 +27,8 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
         out (dict): the config's data
     """
     config_file = Path(config_path)
+    tsprint(f'Getting/verifying config data for "{config_file.name}"')
+
     # get defaults from {config defaults path}/{config name}
     config_defaults_path = os.path.join(CONFIG_DEFAULTS_PATH, config_file.name)
     config_defaults = Path(config_defaults_path)
@@ -66,7 +68,7 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
 
     # check for missing fields
     if create_file:
-        tsprint(f"Checking for missing fields in config {config_file.name} from defaults.")
+        tsprint(f'Checking for missing fields in config "{config_file.name}" from defaults.')
         config_defaults_data: dict = json.loads(config_defaults.read_text())
         missing_fields = [key for key in config_defaults_data.keys() if key not in config_data]
         if missing_fields:
@@ -76,6 +78,7 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
         
         tsprint("No missing fields found. Proceeding.")
 
+    tsprint(f'Config file "{config_file.name}" loaded successfully.')
     return config_data
 
 # TODO: apply this to every relevant config (file from config dir)
