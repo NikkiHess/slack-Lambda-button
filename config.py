@@ -80,5 +80,3 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
 
     tsprint(f'Config file "{config_file.name}" loaded successfully.')
     return config_data
-
-# TODO: apply this to every relevant config (file from config dir)

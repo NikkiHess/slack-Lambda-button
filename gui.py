@@ -347,13 +347,13 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                                 tsprint(f"ERROR: Could not play receive sound:\n{e}")
                     # else revert to main and cancel this countdown
                     else:
-                        sheets_button_config = slack.get_config(SHEETS_SERVICE,
+                        sheets_button_config = slack.get_device_config(SHEETS_SERVICE,
                                                                 SHEETS_SPREADSHEET_ID,
                                                                 slack.BUTTON_CONFIG["device_id"])
                         
                         cells = [
                             get_datetime(),
-                            sheets_button_config[3], # gets location
+                            sheets_button_config[4], # gets location
                             "Resolved"
                         ]
 
@@ -382,13 +382,13 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
         if timeout <= 0:
             revert_to_main(root, frame, style, do_post)
 
-            sheets_button_config = slack.get_config(SHEETS_SERVICE,
+            sheets_button_config = slack.get_device_config(SHEETS_SERVICE,
                                                     SHEETS_SPREADSHEET_ID,
                                                     slack.BUTTON_CONFIG["device_id"])
 
             cells = [
                 get_datetime(),
-                sheets_button_config[3], # gets location
+                sheets_button_config[4], # gets location
                 "Replied" if reply_received else "Timed Out"
             ]
 

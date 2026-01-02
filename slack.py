@@ -32,7 +32,7 @@ tsprint(f"Button ID is {BUTTON_CONFIG.get('device_id', '')}")
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
 
-def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]:
+def get_device_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]:
     """
     Gets the configuration for a button from Google Sheets
     and returns it as a List
@@ -43,12 +43,15 @@ def get_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]
         device_id (str): the id of this specific device, received from slack.json
     """
 
+    # TODO: have this return a dictionary, for ease of access
+    # keys based on first column
+
     tsprint("Getting device config.")
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
     all_rows = sheets.get_region(sheets_service, spreadsheet_id, tab_name="Config",
                                         first_row = 2, last_row = last_row,
-                                        first_letter = "A", last_letter = "I")
+                                        first_letter = "A", last_letter = "J")
 
     for idx, row in enumerate(all_rows, start=2):  # Google Sheets is 1-indexed
         if len(row) > 1 and row[1].strip() == device_id:
@@ -76,11 +79,11 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
 
     # set up Google Sheets and grab the config
     device_id = BUTTON_CONFIG["device_id"]
-    device_config = get_config(sheets_service, spreadsheet_id, device_id)
+    device_config = get_device_config(sheets_service, spreadsheet_id, device_id)
 
-    device_message = device_config[4]
-    device_rate_limit = int(device_config[7])
-    device_channel_id = device_config[8]
+    device_message = device_config[7]
+    device_rate_limit = int(device_config[8])
+    device_channel_id = device_config[9]
 
     # handle timestamp, check for rate limit
     last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
