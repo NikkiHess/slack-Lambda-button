@@ -414,24 +414,26 @@ def setup_sheets():
 	tsprint("Google Cloud OAuth flow complete.")
 
 	# verify that Google credentials file exists
-	config.get_and_verify_config_data("oauth/google_credentials.json")
+	config.get_and_verify_config_data("oauth/google_credentials.json", False)
 
 	config_name = "config/google_config.json"
-	config_file = config.get_and_verify_config_data(config_name)
+	config_data = config.get_and_verify_config_data(config_name)
 
 	sheets_service = None
-	spreadsheet = None
-	spreadsheet_id = None
-	tabs = None # the listed tabs as a dict
 
 	try:
 		sheets_service = build("sheets", "v4", credentials=creds)
 	except HttpError as error:
 		tsprint(error)
-	finally:
-		config_file.close()
 
-	return config_file, sheets_service, spreadsheet, spreadsheet_id, tabs
+	spreadsheet_id = config_data.get("id")
+	spreadsheet = get_spreadsheet(
+		sheets_service=sheets_service,
+		spreadsheet_id=spreadsheet_id
+	)
+	tabs = config_data.get("tabs") # the listed tabs as a dict
+
+	return config_data, sheets_service, spreadsheet, spreadsheet_id, tabs
 
 if __name__ == "__main__":
 	_, sheets_service, _, spreadsheet_id, tabs = setup_sheets("test")

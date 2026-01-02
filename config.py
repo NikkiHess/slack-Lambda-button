@@ -31,7 +31,13 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
     config_defaults_path = os.path.join(CONFIG_DEFAULTS_PATH, config_file.name)
     config_defaults = Path(config_defaults_path)
     if not config_defaults.exists():
-        tsprint(f'Defaults did not exist for "{config_file.name}", assuming they are not needed.')
+        # only require defaults if we're creating a file
+        if create_file:
+            tsprint(f'ERROR: Defaults did not exist for "{config_file.name}". Turn off create_file or verify the defaults exist.')
+            exit(1)
+        
+        # if not creating a file, just warn
+        tsprint(f'WARNING: Defaults did not exist for "{config_file.name}". Assuming they are not needed.')
         config_defaults = None
 
     if create_file:
@@ -40,10 +46,10 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
 
     # check for empty config file
     if os.stat(config_file).st_size == 0:
-        tsprint(f'Config file "{config_file.name}" was empty.')
+        tsprint(f'ERROR: Config file "{config_file.name}" was empty.')
 
         # write defaults if necessary
-        if create_file and config_defaults:
+        if create_file:
             tsprint(f'Writing config defaults to "{config_file.name}"')
             config_file.write_text(config_defaults.read_text()) # could use json module, but this is easier
         
@@ -59,15 +65,15 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
         exit(1)
 
     # check for missing fields
-    config_defaults_data: dict = json.loads(config_defaults.read_text())
-    missing_fields = [key for key in config_defaults_data.keys() if key not in config_data]
-    if missing_fields:
-        missing_fields_str = ", ".join(missing_fields)
-        tsprint(f'Required fields were missing in "{config_file.name}": {missing_fields_str}')
-        exit(1)
+    if create_file:
+        tsprint("Checking for missing fields in config from defaults")
+        config_defaults_data: dict = json.loads(config_defaults.read_text())
+        missing_fields = [key for key in config_defaults_data.keys() if key not in config_data]
+        if missing_fields:
+            missing_fields_str = ", ".join(missing_fields)
+            tsprint(f'Required fields were missing in "{config_file.name}": {missing_fields_str}')
+            exit(1)
 
     return config_data
-
-get_and_verify_config_data("config/test.json")
 
 # TODO: apply this to every relevant config (file from config dir)
