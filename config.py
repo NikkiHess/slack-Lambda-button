@@ -66,13 +66,15 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
 
     # check for missing fields
     if create_file:
-        tsprint("Checking for missing fields in config from defaults")
+        tsprint(f"Checking for missing fields in config {config_file.name} from defaults.")
         config_defaults_data: dict = json.loads(config_defaults.read_text())
         missing_fields = [key for key in config_defaults_data.keys() if key not in config_data]
         if missing_fields:
             missing_fields_str = ", ".join(missing_fields)
             tsprint(f'Required fields were missing in "{config_file.name}": {missing_fields_str}')
             exit(1)
+        
+        tsprint("No missing fields found. Proceeding.")
 
     return config_data
 

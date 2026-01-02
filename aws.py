@@ -7,10 +7,15 @@ Author:
 Nikki Hess (nkhess@umich.edu)
 """
 
+# built-in
 import json
+
+# pypi
 import boto3
 
+# my modules
 from nikki_utils import tsprint
+import config
 
 LATEST_MESSAGE = None # latest SQS message
 STOP_THREAD = False
@@ -180,38 +185,8 @@ def setup_aws() -> boto3.client:
 
     global AWS_CONFIG, SLACK_CONFIG, SQS_CLIENT
 
-    config_defaults = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2", "sns_arn": ""}
-    try:
-        with open("config/aws.json", "r", encoding="utf8") as file:
-            AWS_CONFIG = json.load(file)
-
-            # if we don't have all required keys, populate the defaults
-            if not all(AWS_CONFIG.get(key) for key in list(config_defaults.keys())):
-                with open("config/aws.json", "w", encoding="utf8") as write_file:
-                    json.dump(config_defaults, write_file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        with open("config/aws.json", "w+", encoding="utf8") as file:
-            tsprint("config/aws.json not found or wrong, creating + populating defaults.")
-
-            json.dump(config_defaults, file, indent=4)
-            tsprint("Please fill out config/aws.json before running again.")
-
-    config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
-    try:
-        with open("config/slack.json", "r", encoding="utf8") as file:
-            SLACK_CONFIG = json.load(file)
-
-            # if we don't have all required keys, populate the defaults
-            if not all(SLACK_CONFIG.get(key) for key in list(config_defaults.keys())):
-                with open("config/slack.json", "w", encoding="utf8") as write_file:
-                    json.dump(config_defaults, write_file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        with open("config/slack.json", "w+", encoding="utf8") as file:
-            tsprint("ERROR: config/slack.json not found or wrong, creating + populating defaults.")
-
-            json.dump(config_defaults, file)
-            tsprint("Please fill out config/slack.json before running again.")
-        exit(1)
+    AWS_CONFIG = config.get_and_verify_config_data(config_path="config/aws.json")
+    SLACK_CONFIG = config.get_and_verify_config_data(config_path="config/slack.json")
 
     access_key = AWS_CONFIG["aws_access_key"]
     secret = AWS_CONFIG["aws_secret"]

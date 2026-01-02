@@ -7,43 +7,27 @@ Author:
 Nikki Hess (nkhess@umich.edu)
 """
 
-import json
-import sys
+# built-in
 import time
 import threading
-
 from typing import List
 
+# pypi
 import boto3
 
+# my modules
 import sheets
 import aws
 from nikki_utils import tsprint
+import config
 
 lambda_client, sqs_client = aws.setup_aws()
 
-config_defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
+SLACK_CONFIG = config.get_and_verify_config_data("config/slack.json")
+BOT_OAUTH_TOKEN = SLACK_CONFIG["bot_oauth_token"]
 
-# Read the configuration files
-try:
-    with open("config/slack.json", "r", encoding="utf8") as file:
-        slack_config = json.load(file)
-
-        # if we don't have all required keys, populate the defaults
-        if not all(slack_config.get(key) for key in config_defaults.keys()):
-            with open("config/slack.json", "w", encoding="utf8") as write_file:
-                json.dump(config_defaults, write_file)
-except (FileNotFoundError, json.JSONDecodeError):
-    with open("config/slack.json", "w+", encoding="utf8") as file:
-        tsprint("ERROR: config/slack.json not found or wrong, creating + populating defaults.")
-
-        json.dump(config_defaults, file, indent=4)
-        tsprint("Please fill out config/slack.json before running again.")
-    exit(1)
-
-BUTTON_CONFIG = slack_config["button_config"]
-BOT_OAUTH_TOKEN = slack_config["bot_oauth_token"]
-tsprint(f"Slack config loaded. device_id={BUTTON_CONFIG.get('device_id', '')}")
+BUTTON_CONFIG = config.get_and_verify_config_data("config/button.json")
+tsprint(f"Button ID is {BUTTON_CONFIG.get('device_id', '')}")
 
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
