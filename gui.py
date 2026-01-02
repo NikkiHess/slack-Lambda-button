@@ -353,7 +353,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                         
                         cells = [
                             get_datetime(),
-                            sheets_button_config[4], # gets location
+                            sheets_button_config["location"],
                             "Resolved"
                         ]
 
@@ -388,7 +388,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
 
             cells = [
                 get_datetime(),
-                sheets_button_config[4], # gets location
+                sheets_button_config["location"],
                 "Replied" if reply_received else "Timed Out"
             ]
 

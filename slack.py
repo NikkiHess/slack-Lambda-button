@@ -10,7 +10,7 @@ Nikki Hess (nkhess@umich.edu)
 # built-in
 import time
 import threading
-from typing import List
+import re
 
 # pypi
 import boto3
@@ -32,7 +32,7 @@ tsprint(f"Button ID is {BUTTON_CONFIG.get('device_id', '')}")
 # Dictionary to store the timestamp of the last message sent for each button
 LAST_MESSAGE_TIMESTAMP = {}
 
-def get_device_config(sheets_service, spreadsheet_id: int, device_id: str) -> List[str]:
+def get_device_config(sheets_service, spreadsheet_id: int, device_id: str) -> dict[str, str]:
     """
     Gets the configuration for a button from Google Sheets
     and returns it as a List
@@ -41,26 +41,36 @@ def get_device_config(sheets_service, spreadsheet_id: int, device_id: str) -> Li
         sheets_service: the Google Sheets service we're working with
         spreadsheet_id (int): the id of the spreadsheet we're working on
         device_id (str): the id of this specific device, received from slack.json
+    
+    Returns:
+        out (dict): the dictionary of column name -> config value
     """
-
-    # TODO: have this return a dictionary, for ease of access
-    # keys based on first column
-
     tsprint("Getting device config.")
 
     last_row = sheets.find_first_empty_row(sheets_service, spreadsheet_id)
     all_rows = sheets.get_region(sheets_service, spreadsheet_id, tab_name="Config",
-                                        first_row = 2, last_row = last_row,
+                                        first_row = 1, last_row = last_row,
                                         first_letter = "A", last_letter = "J")
 
-    for idx, row in enumerate(all_rows, start=2):  # Google Sheets is 1-indexed
+    # put titles in device config dict in order
+    keys = []
+    for title in all_rows[0]:
+        title = title.lower().replace("#", "num")
+        title = re.sub(r"\s+", "_", title)
+        title = re.sub(r"\(|\)", "", title)
+
+        keys.append(title)
+
+    for row in all_rows[1:]:
         if len(row) > 1 and row[1].strip() == device_id:
             tsprint(f"Got device info: {row}")
-            return row
+            # combine keys and row (device config)
+            device_config_dict = dict(zip(keys, row))
+
+            return device_config_dict
     
     tsprint(f"ERROR: Unable to get device config. Device {device_id} was not listed. Exiting.")
     exit(1)
-    return device_info
 
 def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id, do_post: bool = True) -> dict | None:
     """
@@ -81,9 +91,9 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
     device_id = BUTTON_CONFIG["device_id"]
     device_config = get_device_config(sheets_service, spreadsheet_id, device_id)
 
-    device_message = device_config[7]
-    device_rate_limit = int(device_config[8])
-    device_channel_id = device_config[9]
+    device_message = device_config["message"]
+    device_rate_limit = int(device_config["rate_limit_seconds"])
+    device_channel_id = device_config["channel_id"]
 
     # handle timestamp, check for rate limit
     last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
@@ -131,4 +141,15 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
     return None
 
 if __name__ == "__main__":
-    pass
+    # config_file: the config file that we created or opened
+    # sheets_service: the Google Sheets service we used
+    # spreadsheet: the spreadsheet gotten/created
+    # spreadsheet_id: the spreadsheet's id, for convenience
+    # tabs: the tabs listed in the config
+    
+    _, sheets_service, _, spreadsheet_id, _ = sheets.setup_sheets()
+    get_device_config(
+        sheets_service=sheets_service,
+        spreadsheet_id=spreadsheet_id,
+        device_id="Dev1"
+    )
