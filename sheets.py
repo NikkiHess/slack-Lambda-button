@@ -33,8 +33,8 @@ def do_oauth_flow() -> Credentials:
 	"""
 	Log a user in and return the credentials needed
 
-	Returns:
-		creds (Credentials): OAuth2 user credentials (token)
+	:return: OAuth2 user credentials (token)
+	:rtype: Credentials
 	"""
 
 	tsprint("Starting Google OAuth flow.")
@@ -80,12 +80,14 @@ def create_spreadsheet(sheets_service, name: str = "Untitled") -> dict:
 	"""
 	Create a new spreadsheet by name, returns the created spreadsheet
 
-	Args:
-		sheets_service: the Google Sheets service to be used
-		name (str): the name of the spreadsheet to be created
+	:param sheets_service: the Google Sheets service to be used
+	:type sheets_service: object
 
-	Returns:
-		spreadsheet (dict): the created spreadsheet
+	:param name: the name of the spreadsheet to be created
+	:type name: str
+
+	:return: the created spreadsheet
+	:rtype: dict
 	"""
 
 	tsprint(f"Creating a new spreadsheet with name {name}")
@@ -113,12 +115,14 @@ def get_spreadsheet(sheets_service, spreadsheet_id: str) -> dict:
 	"""
 	Gets a spreadsheet by id
 
-	Args:
-		sheets_service: the Google Sheets service to be used
-		spreadsheet_id (str): the spreadsheet id to access
+	:param sheets_service: the Google Sheets service to be used
+	:type sheets_service: object
 
-	Returns:
-		spreadsheet (dict): the retrieved spreadsheet, if any
+	:param spreadsheet_id: the spreadsheet id to access
+	:type spreadsheet_id: str
+
+	:return: the retrieved spreadsheet, if any
+	:rtype: dict
 	"""
 
 	tsprint(f"Getting spreadsheet {spreadsheet_id}")
@@ -149,13 +153,17 @@ def is_spreadsheet_empty(sheets_service, spreadsheet_id: str, tab_name: str = No
 	Returns whether a given spreadsheet (by ID) is empty.
 	For our purposes, this just means that A1 and B1 are empty
 
-	Args:
-		sheets_service: the Google Sheets service we're using
-		spreadsheet_id (str): the spreadsheet to check for emptiness
-		tab_name (str): the name of the tab to check, if applicable
+	:param sheets_service: the Google Sheets service we're using
+	:type sheets_service: object
 
-	Returns:
-		whether the spreadsheet (tab) is empty
+	:param spreadsheet_id: the spreadsheet to check for emptiness
+	:type spreadsheet_id: str
+
+	:param tab_name: the name of the tab to check, if applicable
+	:type tab_name: str
+
+	:return: whether the spreadsheet (tab) is empty
+	:rtype: bool
 	"""
 
 	tab_key = tab_name or "__default__"
@@ -207,13 +215,17 @@ def find_first_empty_row(sheets_service, spreadsheet_id: str, tab_name: str = No
 	"""
 	Gets the last row of a given spreadsheet
 
-	Args:
-		sheets_service: the Google Sheets service to be used
-		spreadsheet_id (str): the spreadsheet id to access
-		tab_name (str); the tab name to operate on, if any
+	:param sheets_service: the Google Sheets service to be used
+	:type sheets_service: object
 
-	Returns:
-	first_empty_row (int): the first empty row in the spreadsheet
+	:param spreadsheet_id: the spreadsheet id to access
+	:type spreadsheet_id: str
+
+	:param tab_name: the tab name to operate on, if any
+	:type tab_name: str
+
+	:return: the first empty row in the spreadsheet
+	:rtype: int
 	"""
 	tsprint(f"Looking for first empty row in spreadsheet {spreadsheet_id} tab {tab_name}")
 
@@ -268,14 +280,20 @@ def add_row(sheets_service, spreadsheet_id: str, cells: list[str], tab_name: str
 	"""
 	Adds a row at the first empty position on the spreadsheet
 
-	Args:
-		sheets_service: the Google Sheets service to be used
-		spreadsheet_id (str): the id of the spreadsheet we're operating on
-		cells (list[str]): a list of cell contents to set
-		tab_name (str): the tab name to operate on, if it exists
+	:param sheets_service: the Google Sheets service to be used
+	:type sheets_service: object
 
-	Returns:
-		result: the result of the execution
+	:param spreadsheet_id: the id of the spreadsheet we're operating on
+	:type spreadsheet_id: str
+
+	:param cells: a list of cell contents to set
+	:type cells: list[str]
+
+	:param tab_name: the tab name to operate on, if it exists
+	:type tab_name: str
+
+	:return: the result of the execution
+	:rtype: dict
 	"""
 	tab_key = tab_name or "__default__"
 
@@ -337,14 +355,29 @@ def get_region(sheets_service, spreadsheet_id: str, tab_name: str = None,
 	"""
 	Gets a row in a spreadsheet by index (row_idx)
 
-	Params:
-		sheets_service: the Google Sheets service we're using
-		spreadsheet_id (str): the id of the spreadsheet we're working with
-		tab_name (str): the name of the tab to select within, defaults to "Sheet1"
-		first_row (int): the first row that we need to get
-		last_row (int): the last row that we need to get
-		first_letter (str): the first column that we need to get
-		last_letter (int): the last column that we need to get
+	:param sheets_service: the Google Sheets service we're using
+	:type sheets_service: object
+
+	:param spreadsheet_id: the id of the spreadsheet we're working with
+	:type spreadsheet_id: str
+
+	:param tab_name: the name of the tab to select within, defaults to "Sheet1"
+	:type tab_name: str
+
+	:param first_row: the first row that we need to get
+	:type first_row: int
+
+	:param last_row: the last row that we need to get
+	:type last_row: int
+
+	:param first_letter: the first column that we need to get
+	:type first_letter: str
+
+	:param last_letter: the last column that we need to get
+	:type last_letter: str
+
+	:return: the retrieved region contents (list of rows)
+	:rtype: list
 	"""
 
 	if first_row < 1 or last_row < 1 or first_letter < "A" or last_letter < "A":

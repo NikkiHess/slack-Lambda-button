@@ -37,13 +37,17 @@ def get_device_config(sheets_service, spreadsheet_id: int, device_id: str) -> di
     Gets the configuration for a button from Google Sheets
     and returns it as a List
 
-    Args:
-        sheets_service: the Google Sheets service we're working with
-        spreadsheet_id (int): the id of the spreadsheet we're working on
-        device_id (str): the id of this specific device, received from slack.json
-    
-    Returns:
-        out (dict): the dictionary of column name -> config value
+    :param sheets_service: the Google Sheets service we're working with
+    :type sheets_service: object
+
+    :param spreadsheet_id: the id of the spreadsheet we're working on
+    :type spreadsheet_id: int
+
+    :param device_id: the id of this specific device, received from slack.json
+    :type device_id: str
+
+    :return: the dictionary of column name -> config value
+    :rtype: dict
     """
     tsprint("Getting device config.")
 
@@ -76,13 +80,20 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
     """
     Handles a button press or screen tap, basically just does the main functionality
 
-    Args:
-        aws_client (boto3.client): the AWS client we're using
-        do_post (bool): whether to post to the Slack or just log in console, for debug
-        press_length (float): how long was the button pressed?
+    :param aws_client: the AWS client we're using
+    :type aws_client: boto3.client
 
-    Returns:
-        the posted message id, if there is one OR None
+    :param sheets_service: the Google Sheets service to use
+    :type sheets_service: object
+
+    :param spreadsheet_id: the spreadsheet id to use
+    :type spreadsheet_id: int
+
+    :param do_post: whether to post to the Slack or just log in console, for debug
+    :type do_post: bool
+
+    :return: the posted message id and channel id (tuple) if posted, otherwise None
+    :rtype: (str, str) | None
     """
     
     tsprint("Interaction received, handling.")

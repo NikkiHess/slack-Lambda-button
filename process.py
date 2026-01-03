@@ -5,9 +5,8 @@ import platform
 def set_process_name_linux(process_name: str = b"SLB-GUI\x00"):
     """
     Adapated from https://stackoverflow.com/questions/51521320/tkinter-python-how-to-give-process-name
-    
-    ## Args:
-    - `process_name` (str): the null (\\x00) terminated byte-string name to set the process to
+    :param process_name: the null (\x00) terminated byte-string name to set the process to
+    :type process_name: bytes
     """
 
     tsprint("set_process_name_linux called.")

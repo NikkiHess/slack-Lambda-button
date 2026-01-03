@@ -25,11 +25,20 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
     """
     Posts a message to Slack using chat.postMessage
 
-    Args:
-        aws_client (boto3.client): the AWS client we're using
-        message (str): the message to send
-        channel_id (str): the Slack channel to send the message to
-        dev (bool): whether we're using the dev AWS instance
+    :param aws_client: the AWS client we're using
+    :type aws_client: boto3.client
+
+    :param message: the message to send
+    :type message: str
+
+    :param channel_id: the Slack channel to send the message to
+    :type channel_id: str
+
+    :param device_id: the device id associated with the message
+    :type device_id: str
+
+    :param dev: whether we're using the dev AWS instance
+    :type dev: bool
     """
 
     tsprint("Posting message to Slack via AWS.")
@@ -65,11 +74,17 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
     """
     Edits a message on Slack to mark it timed out
 
-    Args:
-        aws_client (boto3.client): the AWS client we're using
-        message_id (str): the message id to edit
-        channel_id (str): the Slack channel to send the message to
-        dev (bool): whether we're using the dev AWS instance
+    :param aws_client: the AWS client we're using
+    :type aws_client: boto3.client
+
+    :param message_id: the message id to edit
+    :type message_id: str
+
+    :param channel_id: the Slack channel to send the message to
+    :type channel_id: str
+
+    :param dev: whether we're using the dev AWS instance
+    :type dev: bool
     """
 
     tsprint(f"Marking message {message_id} as timed out.")
@@ -97,11 +112,17 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
     """
     Edits a message on Slack to mark it replied
 
-    Args:
-        aws_client (boto3.client): the AWS client we're using
-        message_id (str): the message id to edit
-        channel_id (str): the Slack channel to send the message to
-        dev (bool): whether we're using the dev AWS instance
+    :param aws_client: the AWS client we're using
+    :type aws_client: boto3.client
+
+    :param message_id: the message id to edit
+    :type message_id: str
+
+    :param channel_id: the Slack channel to send the message to
+    :type channel_id: str
+
+    :param dev: whether we're using the dev AWS instance
+    :type dev: bool
     """
 
     tsprint(f"Marking message {message_id} as replied.")
@@ -129,9 +150,11 @@ def poll_sqs(sqs_client: boto3.client, device_id: str):
     """
     Periodically polls SQS, will run on a separate thread
 
-    Args:
-        sqs_client (boto3.client): the SQS client we're using
-        device_id (str): the id of the device we're on
+    :param sqs_client: the SQS client we're using
+    :type sqs_client: boto3.client
+
+    :param device_id: the id of the device we're on
+    :type device_id: str
     """
     global LATEST_MESSAGE, STOP_THREAD
 
@@ -177,8 +200,8 @@ def setup_aws() -> boto3.client:
     """
     Sets up the AWS client
 
-    Returns:
-        the Lambda client, the SQS client
+    :return: a tuple of (lambda_client, sqs_client)
+    :rtype: (boto3.client, boto3.client)
     """
 
     tsprint("Setting up AWS.")

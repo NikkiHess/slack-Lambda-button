@@ -19,12 +19,14 @@ def get_and_verify_config_data(config_path: str, create_file: bool = True) -> di
     """
     Opens a config file based on its (relative or absolute) path. Optionally, opulates defaults if config not found.
 
-    Args:
-        config_path (str): the (relative or absolute) path of the config file to open
-        create_file (bool): whether to create the file if it doesn't exist. default = True
+	:param config_path: the (relative or absolute) path of the config file to open
+	:type config_path: str
 
-    Returns:
-        out (dict): the config's data
+	:param create_file: whether to create the file if it doesn't exist. default = True
+	:type create_file: bool
+
+	:return: the config's data
+	:rtype: dict
     """
     config_file = Path(config_path)
     tsprint(f'Getting/verifying config data for "{config_file.name}"')

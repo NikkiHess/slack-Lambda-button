@@ -56,8 +56,8 @@ def preload_fonts() -> dict:
     """
     Preloads commonly used fonts to avoid repeatedly creating them.
 
-    Returns:
-        dict (tkFont.Font dict): fonts with their sizes
+    :return: fonts with their sizes
+    :rtype: dict
     """
     fonts = {}
     # large heading
@@ -111,11 +111,20 @@ def bind_presses(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool) 
     """
     A simple function to bind or rebind button press-release events for TKinter
 
-    Args:
-        root (tk.Tk): the root window
-        frame (tk.Frame): the frame we're currently working with
-        style (ttk.Style): the style manager for our window
-        do_post (bool): whether to post to Slack
+    :param root: the root window
+    :type root: tk.Tk
+
+    :param frame: the frame we're currently working with
+    :type frame: tk.Frame
+
+    :param style: the style manager for our window
+    :type style: ttk.Style
+
+    :param do_post: whether to post to Slack
+    :type do_post: bool
+
+    :return: None
+    :rtype: None
     """
 
     root.bind("<ButtonPress-1>", lambda event: handle_interaction(root, frame, style, do_post))
@@ -124,9 +133,14 @@ def display_main(frame: tk.Frame, style: ttk.Style) -> None:
     """
     Displays the main (idle) screen for the user
 
-    Args:
-        frame (tk.Frame): the frame we're working with
-        style (ttk.Style): the style manager for our window
+    :param frame: the frame we're working with
+    :type frame: tk.Frame
+
+    :param style: the style manager for our window
+    :type style: ttk.Style
+
+    :return: None
+    :rtype: None
     """
 
     def load_contents():
@@ -172,11 +186,20 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     """
     Handles the Lambda function and switching to the post-interaction display
 
-    Args:
-        root (tk.Tk): the root window
-        frame (tk.Frame): the frame that we're putting widgets in
-        style (ttk.Style): the style manager for our window
-        do_post (bool): whether or not to post to the Slack channel
+    :param root: the root window
+    :type root: tk.Tk
+
+    :param frame: the frame that we're putting widgets in
+    :type frame: tk.Frame
+
+    :param style: the style manager for our window
+    :type style: ttk.Style
+
+    :param do_post: whether or not to post to the Slack channel
+    :type do_post: bool
+
+    :return: None
+    :rtype: None
     """
     global PRESS_START
     PRESS_START = time.time()
@@ -233,11 +256,20 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
     """
     Displays the post interaction instructions
 
-    Args:
-        root (tk.Tk): the root window
-        frame (tk.Frame): the frame
-        style (ttk.Style): the style manager for our window
-        do_post (bool): whether to post to Slack
+    :param root: the root window
+    :type root: tk.Tk
+
+    :param frame: the frame
+    :type frame: tk.Frame
+
+    :param style: the style manager for our window
+    :type style: ttk.Style
+
+    :param do_post: whether to post to Slack
+    :type do_post: bool
+
+    :return: None
+    :rtype: None
     """
 
     base_timeout = 180
@@ -453,11 +485,20 @@ def revert_to_main(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_post: bool
     """
     Reverts from another frame to the main display
 
-    Args:
-        root (tk.Tk): the root window we're working with
-        frame (tk.Frame): the frame we're working with
-        style (ttk.Style): the style we'd like to hold onto
-        do_post (bool): whether to post to Slack
+    :param root: the root window we're working with
+    :type root: tk.Tk
+
+    :param frame: the frame we're working with
+    :type frame: tk.Frame
+
+    :param style: the style we'd like to hold onto
+    :type style: ttk.Style
+
+    :param do_post: whether to post to Slack
+    :type do_post: bool
+
+    :return: None
+    :rtype: None
     """
 
     for widget in frame.winfo_children():
@@ -472,11 +513,11 @@ def hex_to_rgb(hex_str: str) -> tuple:
     """
     Converts a hex string (#000000) to an RGB tuple ((0, 0, 0))
 
-    Args:
-        hex_str (str): the hex string to convert
+    :param hex_str: the hex string to convert
+    :type hex_str: str
 
-    Returns:
-        tuple: what our hex converts to
+    :return: RGB tuple corresponding to the hex string
+    :rtype: tuple[int, int, int]
     """
 
     hex_str = hex_str.lstrip("#")
@@ -487,13 +528,17 @@ def interpolate(start_color: tuple, end_color: tuple, time_: int) -> tuple:
     """
     Interpolates between two colors based on time
 
-    Args:
-        start_color (tuple): the color to start with
-        end_color (tuple): the color to end with
-        time_ (int): the amount of time that has passed
+    :param start_color: the color to start with
+    :type start_color: tuple[int, int, int]
 
-    Returns:
-        An interpolated tuple somewhere between our two colors
+    :param end_color: the color to end with
+    :type end_color: tuple[int, int, int]
+
+    :param time_: the amount of time that has passed (0..1)
+    :type time_: float
+
+    :return: an interpolated tuple somewhere between our two colors
+    :rtype: tuple[int, int, int]
     """
     return tuple(int(a + (b - a) * time_) for a, b in zip(start_color, end_color))
 
@@ -503,13 +548,26 @@ def fade_label(frame: tk.Tk, label: ttk.Label, start_color: tuple, end_color: tu
     """
     A recursive function that fades a label from one color to another
 
-    Args:
-        root (tk.Tk): the root of the window
-        label (ttk.Label): the label to fade
-        start_color (tuple): the start color, as an RGB tuple
-        end_color (tuple): the end color, as an RGB tuple
-        current_step (int): for recursion, tells the function how much we've faded
-        fade_duration_ms (int): the length of time to fade for, in MS
+    :param frame: the root of the window
+    :type frame: tk.Tk
+
+    :param label: the label to fade
+    :type label: ttk.Label
+
+    :param start_color: the start color, as an RGB tuple
+    :type start_color: tuple[int, int, int]
+
+    :param end_color: the end color, as an RGB tuple
+    :type end_color: tuple[int, int, int]
+
+    :param current_step: for recursion, tells the function how much we've faded
+    :type current_step: int
+
+    :param fade_duration_ms: the length of time to fade for, in MS
+    :type fade_duration_ms: int
+
+    :return: None
+    :rtype: None
     """
 
     # set a framerate for the fade
