@@ -1,9 +1,8 @@
 # Custom
-config/
 config_old/
-oauth/
-package/
 logs/
+package/
+# config and oauth have their own gitignores
 
 # STANDARD PYTHON GITIGNORE
 
