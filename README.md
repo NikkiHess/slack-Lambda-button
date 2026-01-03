@@ -1,122 +1,74 @@
-# AWS IoT Button Press Slack Notifier via Lambda Function
+# Duderstadt Center Help Buttons
 
-This project integrates the AWS IoT button with Slack to create an on-demand alert system. Designed primarily as a silent assistance request mechanism, it serves two main use-cases:
+This repository contains the code for running the Raspberry Pi Help Buttons at the Duderstadt center. Clicking or tapping the screen triggers an AWS-backed workflow that posts a message to Slack and records events in Google Sheets.
 
-1. **Guest Help**: Allows guests or visitors to signal for assistance.
-2. **Staff Assistance**: Acts as an internal signaling system, especially when staff members find themselves in situations where they might need immediate help from another adult on-site.
-
-Depending on the button's configuration, different messages can be sent to designated Slack channels, giving both flexibility and specificity in communication.
-
-## Features
-
-- **Easily Configurable**: Customize button actions and messages through a simple JSON file.
-- **Verbose CloudWatch Logging**: Gain insights into button presses, messages, and potential errors in real-time.
-- **Dynamic Slack Webhook**: Send notifications to different Slack channels or workspaces based on button configuration.
-- **Rate Limiting**: Prevents button spam by enforcing a 1 minute cooldown period between messages.
+## Overview
+- **Summary:** A small Python project that integrates a physical button (device) with AWS Lambda and Slack. When the button is pressed, the system posts a message to a configured Slack channel and logs events in Google Sheets. It has two main use-cases:
+  1. **Guest Help**: Allows guests or visitors to request assistance.
+  2. **Staff Assistance**: Acts as an internal signaling system, especially when staff members find themselves in situations where they might need immediate help from another adult on-site.
+- **Local Modules:** `gui.py`, `slack.py`, `aws.py`, `sheets.py`, `process.py`.
+- **Remote Modules:**  `lambda_function.py`
 
 ## Prerequisites
+- Python 3.14+
+- AWS account + credentials with permissions for Lambda, SQS, and CloudWatch
+- Slack app with a bot token (bot OAuth token) and permissions to post messages
+- Google API credentials for Sheets (stored in `oauth/`)
 
-- AWS Account with necessary permissions for Lambda, IoT, and CloudWatch
-- Slack Workspace with a configured incoming webhook
-- Python installed for deployment steps
-- [Seeed IoT Button For AWS](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/)
+## Installation
+1. Create and activate a virtual environment (recommended):
 
-## Setup
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    ```
 
-### 1. Slack Bot Setup
+2. Install dependencies (in order):
 
-- Create a new [Slack App](https://api.slack.com/apps).
-- Under Features, activate `Incoming Webhooks`.
-- Add a new webhook to your workspace. Copy the webhook URL, which will be used in the `slack.json`. 
+- OS-Specific Dependencies
+  - Linux
+    ```bash
+    sudo apt-get install -y python3-dev libasound2-dev
+    ```
 
-### 2. Configuration File
- 
-Create a configuration file (`slack.json`) with the required settings. Expand this file to meet the number of buttons you are deploying:
+- Universal Dependencies
 
-```json
-{
-  "WEBHOOK_URL": "https://hooks.slack.com/services/WEBHOOK_URL",
-  "BUTTON_CONFIG": {
-    "DEVICE_ID": {
-      "LOCATION": "Front Desk Guest Assistance",
-      "MAC": "MAC_ADDRESS",
-      "SINGLE": "Guest needs assistance at the Front Desk",
-      "WEBHOOK_URL": null
-    },
-    "DEVICE_ID": {
-      "LOCATION": "Gallery Guest Assistance",
-      "MAC": "MAC_ADDRESS",
-      "SINGLE": "Guest needs assistance in the Gallery",
-      "DOUBLE": "OPTIONAL_DOUBLE_MESSAGE",
-      "WEBHOOK_URL": "ALT_URL",
-    }
-  }
-}
+  ```bash
+  pip install --upgrade -r requirements.txt
+  ```
+
+3. Create and fill out configuration files (see config_defaults directory for required values)
+- `config/slack.json`: Slack app settings
+- `config/button.json`: Device settings
+- `config/aws.json`: AWS-related settings
+- `config/google_config.json`: Google Sheets config (spreadsheet id, tabs, etc.).
+
+4. Get credentials from Google Cloud + place in `oauth/` folder.
+
+Staff members can also configure the functionality of each button on the relevant Google Sheet (defined in `google_config.json`)
+
+## Running Locally
+- To run the GUI:
+
+  ```bash
+  python gui.py
+  ```
+
+## Packaging For Lambda
+Packaging
+```bash
+# Install Python Requests library
+pip install --target ./package --upgrade -r requirements-aws.txt
+
+# Copy config over to package, if it exists
+copy config ./package/config
 ```
-
-In the example file above the following are all user-filled values:
- - WEBHOOK_URL
- - DEVICE_ID
- - LOCATION
- - MAC
- - ALT_URL
-
-### 3. Libraries & Packaging
-
-This project requires the `requests` Python library to send messages to Slack. 
-
-To package this library with your Lambda function:
-- Download [lambda_function.py](https://github.com/kylie-grace/slack-Lambda-button/blob/main/lambda_function.py).
-- Create a new directory for your Lambda function.
-- Change into that directory using your terminal or command prompt.
-- Install the required libraries into that directory:
-
-```
-  pip install requests -t .
-```
-
-- Add your Lambda function script (lambda_function.py) and configuration file (slack.json) to this directory.
-- Zip the contents of the directory, ensuring the libraries are included.
-
-### 4. Deploying the Lambda Function
-
-#### Manual Deployment
-
-- Navigate to AWS Lambda in the AWS Console.
-- Create a new function.
-- Zip and upload the Lambda function code alongside the required libraries and slack.json.
-- Assign the necessary execution role.
-
-#### IoT Button Deployment
-
-- Set up the [Seeed IoT Button For AWS](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/) using the [AWS IoT 1-Click service](https://aws.amazon.com/iot-1-click/) iOS/Android app.
-- For detailed configuration instructions, refer to the [Seeed Studio Wiki](https://wiki.seeedstudio.com/SEEED-IOT-BUTTON-FOR-AWS/).
-
-## Usage
-
-After deployment, pressing the AWS IoT button will trigger the Lambda function. Depending on the type of press, a specific message from `slack.json` will be sent to Slack. 
 
 ## Troubleshooting
+- Check `logs/` for runtime logs and error traces.
 
-- Check CloudWatch logs for errors or issues during execution.
-- Ensure the IoT button is properly set up and triggering the Lambda function.
-- Confirm that `slack.json` contains the correct configurations.
-- Verify the function isn't affected by the rate limit of 1 message per minute which is applied per-button. You can verify this in the CloudWatch logs. Please note that if you need to modify the rate limit it is presently hard-coded in `lambda_function.py`. Future revisions will move this option to `slack.json`.
+# License
+- MIT License. See `LICENSE` in the repository root for more details.
 
-## Contributing
-
-If you find any bugs or have ideas for enhancements, please open an issue or submit a pull request.
-
-## Development Goals
-
-- **Migrate to Google sheets for button-specific configuration:** (planned) This would allow users to dynamically change configurations without updating the Lambda function code or config files.
-- **User-Definable Rate Limiting:** Make the rate limit user-definable in the configuration file and not hard-coded to the function.
-- **Slack Bot Commands:** Enable a test / setup mode that disregards button presses for a user-definable period. This would prevent false alerts from being posted while the buttons are deployed.
-
-## Credits
-
-Collaborators on this project include [ChatGPT by OpenAI](https://openai.com).
-
-## License
-
-This project is licensed under the MIT License.
+# Contact
+- Maintainer: Nikki Hess (nkhess@umich.edu)
