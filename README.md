@@ -1,4 +1,9 @@
 # Duderstadt Center Help Buttons
+[![Python](https://img.shields.io/badge/Python-3.14-306998?logo=python&logoColor=white)](#)
+[![JSON](https://img.shields.io/badge/JSON-000?logo=json)](#)
+[![AWS](https://custom-icon-badges.demolab.com/badge/AWS-%23FF9900.svg?logo=aws)](#)
+
+![License](https://img.shields.io/github/license/nikkihess/slack-Lambda-button)
 
 This repository contains the code for running the Raspberry Pi Help Buttons at the Duderstadt center. Clicking or tapping the screen triggers an AWS-backed workflow that posts a message to Slack and records events in Google Sheets.
 
