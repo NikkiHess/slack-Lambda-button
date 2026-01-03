@@ -71,12 +71,14 @@ def lambda_handler(event: dict, context: object):
     """
     AWS Lambda function entry point.
 
-    Args:
-        event (dict): the event data from Slack
-        context (object): the runtime information
+    :param event: the event data from Slack
+    :type event: dict
 
-    Returns:
-        dict: a response object for the HTTP request
+    :param context: the runtime information
+    :type context: object
+
+    :return: a response object for the HTTP request
+    :rtype: dict
     """
     print("full payload:", event)
 
@@ -155,11 +157,11 @@ def get_user_first_name(user_id: str):
     """
     Gets a user's name from Slack via their ID, falls back on real name
 
-    Args:
-        user_id (str): the user ID to gather info on
+    :param user_id: the user ID to gather info on
+    :type user_id: str
 
-    Returns:
-        str: the user's first name
+    :return: the user's first name
+    :rtype: str
     """
     url = "https://slack.com/api/users.info"
     headers = {
@@ -186,13 +188,17 @@ def get_location_last_message(channel_id: str, user_id: str, location: str):
     """
     Gets a user's last message from Slack via their ID
 
-    Args:
-        channel_id (str): the ID of the channel to look through
-        user_id (str): the user ID to gather info on
-        location (str): the location we're finding the last message from
+    :param channel_id: the ID of the channel to look through
+    :type channel_id: str
 
-    Returns:
-        dict: the data of the last message the user sent
+    :param user_id: the user ID to gather info on
+    :type user_id: str
+
+    :param location: the location we're finding the last message from
+    :type location: str
+
+    :return: the data of the last message the user sent, or None
+    :rtype: dict | None
     """
 
     # no empty locations pls
@@ -234,12 +240,14 @@ def handle_message_replied(event: dict, reply_text: str) -> bool:
     """
     Handles messages for lambda_handler
 
-    Args:
-        event (dict): the event data from Slack
-        reply_text (str): the text content of the message reply
+    :param event: the event data from Slack
+    :type event: dict
 
-    Returns:
-        resolved (bool): whether the message was marked as resolved, for GUI
+    :param reply_text: the text content of the message reply
+    :type reply_text: str
+
+    :return: whether the message was marked as resolved, for GUI
+    :rtype: bool
     """
     print("Handling message...")
 
@@ -290,11 +298,11 @@ def handle_reaction_added(event: dict) -> bool:
     """
     Handles reactions for lambda_handler
 
-    Args:
-        event (dict): the event data from Slack
+    :param event: the event data from Slack
+    :type event: dict
 
-    Returns:
-        resolved (bool): whether the message was marked as resolved, for GUI
+    :return: whether the message was marked as resolved, for GUI
+    :rtype: bool
     """
     print("Handling reaction added...")
 
@@ -342,12 +350,14 @@ def get_message_content(channel_id: str, message_id: str):
     """
     Retrieves the content of a message from Slack using conversations.history
 
-    Args:
-        channel_id (str): the Slack channel ID where the message was posted
-        message_id (str): the message ID/timestamp to get content from
+    :param channel_id: the Slack channel ID where the message was posted
+    :type channel_id: str
 
-    Returns:
-        str: The content of the message
+    :param message_id: the message ID/timestamp to get content from
+    :type message_id: str
+
+    :return: the content of the message
+    :rtype: str
     """
     url = "https://slack.com/api/conversations.history"
     headers = {
@@ -378,9 +388,14 @@ def message_append(channel_id: str, ts: str, to_append: str):
     """
     Marks a message as resolved by appending (resolved) to the message text.
 
-    Args:
-        channel_id (str): the ID of the channel containing the message
-        ts (str): the timestamp of the message to update
+    :param channel_id: the ID of the channel containing the message
+    :type channel_id: str
+
+    :param ts: the timestamp of the message to update
+    :type ts: str
+
+    :param to_append: the text to append to the message
+    :type to_append: str
     """
     existing_content = get_message_content(channel_id, ts)
     updated_content = f"{existing_content} {to_append}"
@@ -411,10 +426,20 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
     """
     Posts a message to Slack using chat.postMessage
 
-    Args:
-        channel (str): the Slack channel to send the message to
-        message (str): the message to send
-        location (str): the location we're sending from
+    :param channel_id: the Slack channel to send the message to
+    :type channel_id: str
+
+    :param message: the message to send
+    :type message: str
+
+    :param device_id: the device id associated with the message
+    :type device_id: str
+
+    :param location: the location we're sending from
+    :type location: str
+
+    :return: tuple of (message_id, channel_id) if posted, otherwise ('N/A', 'N/A') on rate limit
+    :rtype: (str, str)
     """
     url = "https://slack.com/api/chat.postMessage"
     headers = {
@@ -458,8 +483,9 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
 def get_bot_user_id():
     """
     Retrieves the user ID of the currently running bot
-    Returns:
-        str: The bot's user ID
+
+    :return: The bot's user ID
+    :rtype: str
     """
     url = "https://slack.com/api/auth.test"
     headers = {
@@ -477,9 +503,11 @@ def get_bot_user_id():
 def mark_message_timedout(channel_id: str, message_id: str):
     """
     Marks a message as timed out (usually after 3 minutes)
-    Args:
-        channel_id (str): the Slack channel ID where the message was posted
-        message_id (str): the message ID/timestamp to get content from
+    :param channel_id: the Slack channel ID where the message was posted
+    :type channel_id: str
+
+    :param message_id: the message ID/timestamp to get content from
+    :type message_id: str
     """
     if message_id in pending_messages:
         pending_messages.remove(message_id)
@@ -490,9 +518,11 @@ def mark_message_timedout(channel_id: str, message_id: str):
 def mark_message_replied(channel_id: str, message_id: str):
     """
     Marks a message as replied (usually after 3 minutes)
-    Args:
-        channel_id (str): the Slack channel ID where the message was posted
-        message_id (str): the message ID/timestamp to get content from
+    :param channel_id: the Slack channel ID where the message was posted
+    :type channel_id: str
+
+    :param message_id: the message ID/timestamp to get content from
+    :type message_id: str
     """
     if message_id in pending_messages:
         if not (get_message_content(channel_id, message_id).endswith("*(replied)*")
