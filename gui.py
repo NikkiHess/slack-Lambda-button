@@ -636,6 +636,7 @@ def display_gui() -> None:
 
 if __name__ == "__main__":
     # set logfile name before any tsprint calls occur
+    # TODO: make this use filename-style date (eg 2026-01-04)
     now = datetime.now()
     now = now.strftime("%x %X")
     now = re.sub(r"\/|:", "-", now)
