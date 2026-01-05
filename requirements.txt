@@ -13,6 +13,3 @@ google-api-python-client
 
 # aws
 boto3
-
-# git
-gitpython
