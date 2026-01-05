@@ -7,8 +7,6 @@ Author:
 Nikki Hess - nkhess@umich.edu
 """
 
-# TODO: UPDATE ALL DOCSTRINGS' FORMATTING
-
 # built-in
 from datetime import datetime
 import time
@@ -591,7 +589,7 @@ def display_gui() -> None:
     global FONTS
 
     escape_display_period_ms = 5000
-    do_post = True # TODO: make this an environment variable? how do we do this?
+    do_post = True
 
     # make a window
     root = tk.Tk()
@@ -635,10 +633,9 @@ def display_gui() -> None:
     root.mainloop()
 
 if __name__ == "__main__":
-    # set logfile name before any tsprint calls occur
-    # TODO: make this use filename-style date (eg 2026-01-04)
+    # set logfile name before any tsprint calls occur (otherwise defaults to program.log)
     now = datetime.now()
-    now = now.strftime("%x %X")
+    now = now.strftime("%Y-%m-%d %X")
     now = re.sub(r"\/|:", "-", now)
     set_log_file(f"logs/{now}.log")
 
