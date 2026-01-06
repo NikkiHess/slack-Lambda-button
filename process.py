@@ -22,7 +22,7 @@ def set_process_name_linux(process_name: str = b"SLB-GUI\x00"):
 
         try:
             libc.prctl(15, byref(buff), 0, 0, 0)
-            tsprint("Process name set to {process_name}.")
+            tsprint(f"Process name set to {process_name}.")
         except Exception as e:
             tsprint(f"ERROR: Failed to set process name: {e}")
     else:
