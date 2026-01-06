@@ -235,16 +235,3 @@ def setup_aws() -> boto3.client:
     tsprint("Returning AWS clients.")
 
     return client, SQS_CLIENT
-
-if __name__ == "__main__":
-    lambda_client, sqs_client = setup_aws()
-
-    while True:
-        pass
-
-    # # post_to_slack(
-    # #     aws,
-    # #     "This is a test from Nikki's local machine",
-    # #     "C05T5H5GK54",
-    # #     True
-    # )
