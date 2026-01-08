@@ -23,7 +23,7 @@ from googleapiclient.errors import HttpError
 
 # my modules
 from nikki_utils import tsprint
-import config
+from . import config
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CACHE = {}

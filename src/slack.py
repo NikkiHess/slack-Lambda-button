@@ -16,10 +16,10 @@ import re
 import boto3
 
 # my modules
-import sheets
-import aws
+from . import sheets
+from . import aws
 from nikki_utils import tsprint
-import config
+from . import config
 
 lambda_client, sqs_client = aws.setup_aws()
 

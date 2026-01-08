@@ -511,9 +511,11 @@ def mark_message_timedout(channel_id: str, message_id: str):
     """
     if message_id in pending_messages:
         pending_messages.remove(message_id)
-        message_append(channel_id, message_id, "*(timed out)*")
-
         print(f"Message {message_id} has timed out")
+
+        return message_append(channel_id, message_id, "*(timed out)*")
+    
+    return 
 
 def mark_message_replied(channel_id: str, message_id: str):
     """

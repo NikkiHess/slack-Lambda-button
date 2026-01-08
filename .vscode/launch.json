@@ -5,12 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run GUI",
+            "name": "GUI",
             "type": "debugpy",
             "request": "launch",
-            "program": "${cwd}/gui.py",
-            "console": "integratedTerminal",
-            "justMyCode": false
+            "module": "src.gui",
+            "console": "integratedTerminal"
         },
     ]
 }

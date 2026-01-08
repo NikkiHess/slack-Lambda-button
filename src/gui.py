@@ -18,10 +18,10 @@ import re
 import sys
 
 # my modules
-import process
+from . import process
+from . import aws
+from . import sheets
 from nikki_utils import tsprint, set_log_file
-import aws
-import sheets
 
 # pypi
 from PIL import Image, ImageTk
@@ -666,6 +666,6 @@ if __name__ == "__main__":
         tsprint("WARNING: simpleaudio not installed, audio will not play.")
 
     # in main so that it happens after create_logfile
-    import slack
+    from . import slack
 
     display_gui()

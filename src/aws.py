@@ -15,7 +15,7 @@ import boto3
 
 # my modules
 from nikki_utils import tsprint
-import config
+from . import config
 
 LATEST_MESSAGE = None # latest SQS message
 STOP_THREAD = False
@@ -86,7 +86,6 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
     :param dev: whether we're using the dev AWS instance
     :type dev: bool
     """
-
     tsprint(f"Marking message {message_id} as timed out.")
 
     payload = {
