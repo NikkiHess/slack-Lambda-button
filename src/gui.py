@@ -387,16 +387,17 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                             "Resolved"
                         ]
 
-                        threading.Thread(
-                            target=sheets.add_row, 
-                            args = (
-                                SHEETS_SERVICE, 
-                                SHEETS_SPREADSHEET_ID,
-                                cells,
-                                SHEETS_TABS["logging"]
-                            ),
-                            daemon=True
-                        ).start()
+                        if sheets_button_config["function"] != "Development":
+                            threading.Thread(
+                                target=sheets.add_row, 
+                                args = (
+                                    SHEETS_SERVICE, 
+                                    SHEETS_SPREADSHEET_ID,
+                                    cells,
+                                    SHEETS_TABS["logging"]
+                                ),
+                                daemon=True
+                            ).start()
 
                         revert_to_main(root, frame, style, do_post)
                         
@@ -422,16 +423,18 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                 "Replied" if reply_received else "Timed Out"
             ]
 
-            threading.Thread(
-                target=sheets.add_row, 
-                args = (
-                    SHEETS_SERVICE, 
-                    SHEETS_SPREADSHEET_ID,
-                    cells,
-                    SHEETS_TABS["logging"]
-                ),
-                daemon=True
-            ).start()
+            # if we're using a non-development button, log
+            if sheets_button_config["function"] != "Development":
+                threading.Thread(
+                    target=sheets.add_row, 
+                    args = (
+                        SHEETS_SERVICE, 
+                        SHEETS_SPREADSHEET_ID,
+                        cells,
+                        SHEETS_TABS["logging"]
+                    ),
+                    daemon=True
+                ).start()
 
             # if we have a pending message or haven't received a reply,
             # we need to time out
