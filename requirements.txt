@@ -13,3 +13,7 @@ google-api-python-client
 
 # aws
 boto3
+
+# testing
+pytest-mock
+pytest-cov

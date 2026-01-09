@@ -60,31 +60,31 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
         FunctionName="slackLambda" + "-dev" if dev else "",
         Payload=payload
     )
-    
-    tsprint(f"AWS Response: {response}")
 
     # extract our custom response
     response = response["Payload"].read().decode("utf-8")
     response = json.loads(response)
 
+    tsprint(f"AWS Response: {response}")
+
     # this should be guaranteed with a post payload
     return response.get("posted_message_id"), response.get("posted_message_channel")
 
-def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
+def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool) -> dict:
     """
     Edits a message on Slack to mark it timed out
 
     :param aws_client: the AWS client we're using
     :type aws_client: boto3.client
-
     :param message_id: the message id to edit
     :type message_id: str
-
     :param channel_id: the Slack channel to send the message to
     :type channel_id: str
-
     :param dev: whether we're using the dev AWS instance
     :type dev: bool
+
+    :return response: the AWS response payload
+    :rtype: dict
     """
     tsprint(f"Marking message {message_id} as timed out.")
 
@@ -105,7 +105,13 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
         Payload=payload
     )
     
+    # extract our custom response
+    response = response["Payload"].read().decode("utf-8")
+    response = json.loads(response)
+    
     tsprint(f"AWS Response: {response}")
+    
+    return response
 
 def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
     """
@@ -123,7 +129,6 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
     :param dev: whether we're using the dev AWS instance
     :type dev: bool
     """
-
     tsprint(f"Marking message {message_id} as replied.")
 
     payload = {
@@ -142,6 +147,10 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
         FunctionName="slackLambda" + "-dev" if dev else "",
         Payload=payload
     )
+
+    # extract our custom response
+    response = response["Payload"].read().decode("utf-8")
+    response = json.loads(response)
     
     tsprint(f"AWS Response: {response}")
 
