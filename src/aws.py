@@ -57,7 +57,7 @@ def post_to_slack(aws_client: boto3.client, message: str, channel_id: str,
 
     # the function name is apparently the name of the instance ¯\_(ツ)_/¯
     response = aws_client.invoke(
-        FunctionName="slackLambda" + "-dev" if dev else "",
+        FunctionName="slackLambda-dev" if dev else "slackLambda",
         Payload=payload
     )
 
@@ -101,7 +101,7 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
 
     # invoke the AWS Lambda function
     response = aws_client.invoke(
-        FunctionName="slackLambda" + "-dev" if dev else "",
+        FunctionName="slackLambda-dev" if dev else "slackLambda",
         Payload=payload
     )
     
@@ -113,21 +113,21 @@ def mark_message_timed_out(aws_client: boto3.client, message_id: str, channel_id
     
     return response
 
-def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool):
+def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: str, dev: bool) -> dict:
     """
     Edits a message on Slack to mark it replied
 
     :param aws_client: the AWS client we're using
     :type aws_client: boto3.client
-
     :param message_id: the message id to edit
     :type message_id: str
-
     :param channel_id: the Slack channel to send the message to
     :type channel_id: str
-
     :param dev: whether we're using the dev AWS instance
     :type dev: bool
+
+    :return response: the AWS response payload
+    :rtype: dict
     """
     tsprint(f"Marking message {message_id} as replied.")
 
@@ -144,7 +144,7 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
 
     # invoke the AWS Lambda function
     response = aws_client.invoke(
-        FunctionName="slackLambda" + "-dev" if dev else "",
+        FunctionName="slackLambda-dev" if dev else "slackLambda",
         Payload=payload
     )
 
@@ -154,13 +154,14 @@ def mark_message_replied(aws_client: boto3.client, message_id: str, channel_id: 
     
     tsprint(f"AWS Response: {response}")
 
+    return response
+
 def poll_sqs(sqs_client: boto3.client, device_id: str):
     """
     Periodically polls SQS, will run on a separate thread
 
     :param sqs_client: the SQS client we're using
     :type sqs_client: boto3.client
-
     :param device_id: the id of the device we're on
     :type device_id: str
     """
@@ -211,7 +212,6 @@ def setup_aws() -> boto3.client:
     :return: a tuple of (lambda_client, sqs_client)
     :rtype: (boto3.client, boto3.client)
     """
-
     tsprint("Setting up AWS.")
 
     global AWS_CONFIG, SLACK_CONFIG, SQS_CLIENT
