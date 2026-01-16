@@ -28,7 +28,7 @@ except FileNotFoundError as e:
         json.dump(defaults, file, indent=4)
 
 
-CONFIG_DEFAULTS = {"aws_access_key": "", "aws_secret": "", "region": "us-east-2"}
+CONFIG_DEFAULTS = {"aws_access_key": "", "aws_secret": "", "sns_arn": "", "region": "us-east-2"}
 try:
     with open("config/aws.json", "r", encoding="utf8") as file:
         AWS_CONFIG = json.load(file)
@@ -84,7 +84,7 @@ def lambda_handler(event: dict, context: object):
 
     event_body = event.get("body", "{}")
     if isinstance(event_body, str):
-        event_body.replace("“", "\"").replace("”", "\"").replace("‘", "\"").replace("’", "\"").replace(",", "\"")
+        event_body = event_body.replace("“", "\"").replace("”", "\"").replace("‘", "\"").replace("’", "\"").replace(",", "\"")
     print(event_body)
 
     # slack sends body as a json-string, but our local test code doesn't
@@ -294,7 +294,7 @@ def handle_reaction_added(event: dict) -> bool:
 
     return resolved
 
-def get_message_content(channel_id: str, message_id: str):
+def get_message_content(channel_id: str, message_id: str) -> str:
     """
     Retrieves the content of a message from Slack using conversations.history
 
@@ -463,22 +463,10 @@ def mark_message_replied(channel_id: str, message_id: str):
     :type message_id: str
     """
     if message_id in pending_messages:
-        if not (get_message_content(channel_id, message_id).endswith("*(replied)*")
-                or get_message_content(channel_id, message_id).endswith("*(resolved)*")
-                or get_message_content(channel_id, message_id).endswith("*(timed out)*")):
+        message_content = get_message_content(channel_id, message_id)
+        if not (message_content.endswith("*(replied)*")
+                or message_content.endswith("*(resolved)*")
+                or message_content.endswith("*(timed out)*")):
             message_append(channel_id, message_id, "*(replied)*")
 
         print(f"Message {message_id} has been marked as replied")
-
-if __name__ == "__main__":
-    # Run test
-    try:
-        with open("aws_json/test_post.json", "r", encoding="utf8") as test_file:
-            test_event = json.load(test_file)
-            response = lambda_handler(test_event, None)
-            print("Response:", response)
-    except FileNotFoundError as e:
-        print("test_post.json not found.")
-    except json.JSONDecodeError as e:
-        print("Error decoding test_post.json:", e)
-    
