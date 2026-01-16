@@ -9,10 +9,7 @@ Nikki Hess (nkhess@umich.edu)
 
 import json
 import requests
-from threading import Timer
 import boto3
-import time
-import re
 
 # Read the configuration files
 try:
@@ -26,7 +23,6 @@ except FileNotFoundError as e:
 
         defaults = {"bot_oauth_token": "", "button_config": {"device_id": ""}}
         json.dump(defaults, file, indent=4)
-
 
 CONFIG_DEFAULTS = {"aws_access_key": "", "aws_secret": "", "sns_arn": "", "region": "us-east-2"}
 try:
@@ -61,11 +57,12 @@ SNS_CLIENT = boto3.client(
 BUTTON_CONFIG = CONFIG["button_config"]
 BOT_OAUTH_TOKEN = CONFIG["bot_oauth_token"]
 
-POST_COOLDOWN = 15 # in seconds
-
 pending_messages = []
 message_to_channel = {} # pairs message ids with channel ids
 message_to_device_id = {} # pairs message ids with device ids
+
+# cache
+USER_ID_TO_FIRST_NAME = {}
 
 def lambda_handler(event: dict, context: object):
     """
@@ -163,6 +160,11 @@ def get_user_first_name(user_id: str):
     :return: the user's first name
     :rtype: str
     """
+    # if we have the name cached, skip the API call entirely
+    cached_name = USER_ID_TO_FIRST_NAME.get(user_id)
+    if cached_name:
+        return cached_name
+
     url = "https://slack.com/api/users.info"
     headers = {
         "Authorization": f"Bearer {BOT_OAUTH_TOKEN}",
@@ -181,6 +183,8 @@ def get_user_first_name(user_id: str):
 
     first_name = user_info["user"].get("real_name", "Unknown") # get real name
     first_name = first_name.split()[0] # trim to first name only
+
+    USER_ID_TO_FIRST_NAME[user_id] = first_name
 
     return first_name
 
