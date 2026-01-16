@@ -61,8 +61,17 @@ pending_messages = []
 message_to_channel = {} # pairs message ids with channel ids
 message_to_device_id = {} # pairs message ids with device ids
 
+# will save time on getting/posting, keeping ONE session rather than opening and closing many
+REQUESTS_SESSION = requests.Session()
+REQUESTS_SESSION.headers.update({
+    "Authorization": f"Bearer {BOT_OAUTH_TOKEN}",
+    "Content-Type": "application/json; charset=utf-8"
+})
+
 # cache
 USER_ID_TO_FIRST_NAME = {}
+CHANNEL_AND_MESSAGE_ID_TO_CONTENT: dict[dict[str, str]] = {}
+BOT_USER_ID = None
 
 def lambda_handler(event: dict, context: object):
     """
@@ -166,16 +175,11 @@ def get_user_first_name(user_id: str):
         return cached_name
 
     url = "https://slack.com/api/users.info"
-    headers = {
-        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}",
-        "Content-Type": "application/json; charset=utf-8"
-    }
     params = {
         "user": user_id
     }
 
-    # 10 second timeout
-    response = requests.get(url, headers=headers, params=params, timeout=5)
+    response = REQUESTS_SESSION.get(url, params=params, timeout=5)
     user_info = response.json()
 
     if not user_info.get("ok"):
@@ -184,6 +188,7 @@ def get_user_first_name(user_id: str):
     first_name = user_info["user"].get("real_name", "Unknown") # get real name
     first_name = first_name.split()[0] # trim to first name only
 
+    # save to cache
     USER_ID_TO_FIRST_NAME[user_id] = first_name
 
     return first_name
@@ -311,11 +316,13 @@ def get_message_content(channel_id: str, message_id: str) -> str:
     :return: the content of the message
     :rtype: str
     """
+    # check the cache first, to skip API calls if we can
+    cached_channel = CHANNEL_AND_MESSAGE_ID_TO_CONTENT.get(channel_id)
+    if cached_channel:
+        cached_content = cached_channel.get(message_id)
+        return cached_content
+
     url = "https://slack.com/api/conversations.history"
-    headers = {
-        "Content-Type": "application/json; charset=utf-8",
-        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
-    }
     params = {
         "channel": channel_id,
         "latest": message_id,
@@ -324,7 +331,7 @@ def get_message_content(channel_id: str, message_id: str) -> str:
     }
 
     # 10 second timeout
-    ct_response = requests.get(url, headers=headers, params=params, timeout=5)
+    ct_response = REQUESTS_SESSION.get(url, params=params, timeout=5)
     response_data = ct_response.json()
 
     if not response_data.get("ok"):
@@ -334,7 +341,14 @@ def get_message_content(channel_id: str, message_id: str) -> str:
     if not messages:
         raise RuntimeError("No messages found")
 
-    return messages[0].get("text")
+    message_content = messages[0].get("text")
+
+    # update the cache
+    if channel_id not in CHANNEL_AND_MESSAGE_ID_TO_CONTENT:
+        CHANNEL_AND_MESSAGE_ID_TO_CONTENT[channel_id] = {}
+    CHANNEL_AND_MESSAGE_ID_TO_CONTENT[channel_id][message_id] = message_content
+
+    return message_content
 
 def message_append(channel_id: str, ts: str, to_append: str):
     """
@@ -353,10 +367,6 @@ def message_append(channel_id: str, ts: str, to_append: str):
     updated_content = f"{existing_content} {to_append}"
 
     url = "https://slack.com/api/chat.update"
-    headers = {
-        "Content-Type": "application/json; charset=utf-8",
-        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
-    }
     payload = {
         "channel": channel_id,
         "ts": ts,
@@ -364,13 +374,18 @@ def message_append(channel_id: str, ts: str, to_append: str):
     }
 
     # 10 second timeout
-    res_response = requests.post(url, headers=headers, json=payload, timeout=5)
+    res_response = REQUESTS_SESSION.post(url, json=payload, timeout=5)
     response_data = res_response.json()
 
     if not response_data.get("ok"):
         raise RuntimeError(f"Error editing message: {response_data['error']}")
 
     print(f"Message with ID {ts} edited successfully")
+
+    # update the cache
+    if channel_id not in CHANNEL_AND_MESSAGE_ID_TO_CONTENT:
+        CHANNEL_AND_MESSAGE_ID_TO_CONTENT[channel_id] = {}
+    CHANNEL_AND_MESSAGE_ID_TO_CONTENT[channel_id][ts] = updated_content
 
     return response_data
 
@@ -394,17 +409,13 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
     :rtype: (str, str)
     """
     url = "https://slack.com/api/chat.postMessage"
-    headers = {
-        "Content-Type": "application/json; charset=utf-8",
-        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
-    }
     payload = {
         "channel": channel_id,
         "text": message
     }
 
     # 10 second timeout
-    post_response = requests.post(url, headers=headers, json=payload, timeout=5)
+    post_response = REQUESTS_SESSION.post(url, json=payload, timeout=5)
     response_data = post_response.json()
 
     if not response_data.get("ok"):
@@ -427,18 +438,25 @@ def get_bot_user_id():
     :return: The bot's user ID
     :rtype: str
     """
-    url = "https://slack.com/api/auth.test"
-    headers = {
-        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
-    }
+    global BOT_USER_ID
 
-    response = requests.get(url, headers=headers, timeout=5)
+    if BOT_USER_ID:
+        return BOT_USER_ID
+
+    url = "https://slack.com/api/auth.test"
+
+    response = REQUESTS_SESSION.get(url, timeout=5)
     response_data = response.json()
 
     if not response_data.get("ok"):
         raise RuntimeError(f"Error retrieving bot user ID: {response_data['error']}")
 
-    return response_data["user_id"]
+    obtained_bot_user_id = response_data["user_id"]
+
+    # update the cache
+    BOT_USER_ID = obtained_bot_user_id
+
+    return obtained_bot_user_id
 
 def mark_message_timedout(channel_id: str, message_id: str):
     """
