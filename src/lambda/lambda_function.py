@@ -89,8 +89,6 @@ def lambda_handler(event: dict, context: object):
     print("full payload:", event)
 
     event_body = event.get("body", "{}")
-    if isinstance(event_body, str):
-        event_body = event_body.replace("“", "\"").replace("”", "\"").replace("‘", "\"").replace("’", "\"").replace(",", "\"")
     print(event_body)
 
     # slack sends body as a json-string, but our local test code doesn't
