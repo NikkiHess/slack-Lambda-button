@@ -184,58 +184,6 @@ def get_user_first_name(user_id: str):
 
     return first_name
 
-def get_location_last_message(channel_id: str, user_id: str, location: str):
-    """
-    Gets a user's last message from Slack via their ID
-
-    :param channel_id: the ID of the channel to look through
-    :type channel_id: str
-
-    :param user_id: the user ID to gather info on
-    :type user_id: str
-
-    :param location: the location we're finding the last message from
-    :type location: str
-
-    :return: the data of the last message the user sent, or None
-    :rtype: dict | None
-    """
-
-    # no empty locations pls
-    if location == "":
-        return None
-
-    url = "https://slack.com/api/conversations.history"
-    headers = {
-        "Content-Type": "application/json; charset=utf-8",
-        "Authorization": f"Bearer {BOT_OAUTH_TOKEN}"
-    }
-    params = {
-        "channel": channel_id,
-        "oldest": str(time.time() - POST_COOLDOWN), # get messages within cooldown period
-        "inclusive": True
-    }
-
-    # 10 second timeout
-    ct_response = requests.get(url, headers=headers, params=params, timeout=5)
-    response_data = ct_response.json()
-
-    if not response_data.get("ok"):
-        raise RuntimeError(f"Error retrieving message: {response_data['error']}")
-
-    messages = response_data.get("messages")
-
-    # loop over recent messages
-    for message in messages:
-        user = message.get("user")
-        text = message.get("text")
-        print(text.split(" "))
-        # verify this is from the user specified and is in the location specified
-        if user == user_id and location.strip() in text:
-            return message
-
-    return None
-
 def handle_message_replied(event: dict, reply_text: str) -> bool:
     """
     Handles messages for lambda_handler
@@ -450,18 +398,6 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
         "channel": channel_id,
         "text": message
     }
-
-    last_message = get_location_last_message(channel_id, get_bot_user_id(), location)
-    if last_message:
-        print("Last message found: ", last_message["ts"])
-        last_message_time = float(last_message["ts"])
-        current_time = time.time()
-
-        # if the difference between this message's time and 
-        # the last message's is less than the cooldown, don't post
-        if last_message_time and current_time - last_message_time <= POST_COOLDOWN:
-            print("Posting messages too fast! Rate limit applied.")
-            return "N/A", "N/A"
 
     # 10 second timeout
     post_response = requests.post(url, headers=headers, json=payload, timeout=5)

@@ -27,10 +27,8 @@ SLACK_CONFIG = config.get_and_verify_config_data("config/slack.json")
 BOT_OAUTH_TOKEN = SLACK_CONFIG["bot_oauth_token"]
 
 BUTTON_CONFIG = config.get_and_verify_config_data("config/button.json")
-tsprint(f"Button ID is {BUTTON_CONFIG.get('device_id', '')}")
 
-# Dictionary to store the timestamp of the last message sent for each button
-LAST_MESSAGE_TIMESTAMP = {}
+LAST_MESSAGE_TIMESTAMP = None
 
 def get_device_config(sheets_service, spreadsheet_id: int, device_id: str) -> dict[str, str]:
     """
@@ -95,7 +93,6 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
     :return: the posted message id and channel id (tuple) if posted, otherwise None
     :rtype: (str, str) | None
     """
-    
     tsprint("Interaction received, handling.")
 
     # set up Google Sheets and grab the config
@@ -103,16 +100,7 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
     device_config = get_device_config(sheets_service, spreadsheet_id, device_id)
 
     device_message = device_config["message"]
-    device_rate_limit = int(device_config["rate_limit_seconds"])
     device_channel_id = device_config["channel_id"]
-
-    # handle timestamp, check for rate limit
-    last_timestamp = LAST_MESSAGE_TIMESTAMP.get(device_id, 0)
-    current_timestamp = time.time()
-
-    if current_timestamp - last_timestamp < device_rate_limit:
-        tsprint("Rate limit applied. Message not sent.")
-        return {"statusCode": 429, "body": "Rate limit applied."}
 
     # handle empty message/location
     if device_message is None or device_message == "":
@@ -130,10 +118,10 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
         result_container = {}
 
         def aws_worker():
+            global LAST_MESSAGE_TIMESTAMP
             message_id, channel_id = aws.post_to_slack(
                 aws_client, final_message, device_channel_id, device_id, True
             )
-            LAST_MESSAGE_TIMESTAMP[device_id] = current_timestamp
             tsprint("Message posted to slack.")
             
             # store results for the caller
@@ -150,17 +138,3 @@ def handle_interaction(aws_client: boto3.client, sheets_service, spreadsheet_id,
     
     # else not needed here cuz return
     return None
-
-if __name__ == "__main__":
-    # config_file: the config file that we created or opened
-    # sheets_service: the Google Sheets service we used
-    # spreadsheet: the spreadsheet gotten/created
-    # spreadsheet_id: the spreadsheet's id, for convenience
-    # tabs: the tabs listed in the config
-    
-    _, sheets_service, _, spreadsheet_id, _ = sheets.setup_sheets()
-    get_device_config(
-        sheets_service=sheets_service,
-        spreadsheet_id=spreadsheet_id,
-        device_id="Dev1"
-    )

@@ -21,6 +21,7 @@ import sys
 from . import process
 from . import aws
 from . import sheets
+from . import slack
 from nikki_utils import tsprint, set_log_file
 
 # pypi
@@ -199,54 +200,59 @@ def handle_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style,
     :return: None
     :rtype: None
     """
-    global PRESS_START
-    PRESS_START = time.time()
+    device_id = slack.BUTTON_CONFIG["device_id"] # get device id
+    device_config = slack.get_device_config(SHEETS_SERVICE, SHEETS_SPREADSHEET_ID, device_id) # get config
+    device_rate_limit = int(device_config["rate_limit_seconds"]) # get rate limit
+    current_timestamp = time.time() # get current timestamp to compare to last message timestamp
+
+    if slack.LAST_MESSAGE_TIMESTAMP and current_timestamp - slack.LAST_MESSAGE_TIMESTAMP < device_rate_limit:
+        tsprint("Rate limit applied. Message not sent.")
+        ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.",
+                                    style="Escape.TLabel")
+        ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
+        if is_simpleaudio_installed:
+            try:
+                RATELIMIT_SOUND.play()
+                tsprint("Played rate limit sound.")
+            except Exception as e:
+                tsprint(f"ERROR: Could not play rate limit sound:\n{e}")
+        root.after(3 * 1000, fade_label, root,
+                    ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
+        return
+    slack.LAST_MESSAGE_TIMESTAMP = current_timestamp
+    
     root.unbind("<ButtonPress-1>") # unbind clicks upon interaction
 
     def worker():
         tsprint(f"GUI handling interaction (do_post={do_post})")
+
+        # update the GUI FIRST so as to prevent any delay
+        def gui_update():
+            # clear display and switch frames
+            for widget in frame.winfo_children():
+                widget.place_forget()
+
+            display_post_interaction(root, frame, style, do_post)
+
+            if is_simpleaudio_installed:
+                try:
+                    INTERACT_SOUND.play()
+                    tsprint("Played interact sound.")
+                except Exception as e:
+                    tsprint(f"ERROR: Could not play interact sound:\n{e}")
+        root.after(0, gui_update)
+
         message_id, channel_id = slack.handle_interaction(
             slack.lambda_client,
             SHEETS_SERVICE,
             SHEETS_SPREADSHEET_ID,
             do_post=do_post
         )
+        with pending_message_ids_lock:
+            pending_message_ids.append(message_id)
+        message_to_channel[message_id] = channel_id
+
         tsprint(f"GUI received interaction result: message_id={message_id} channel_id={channel_id}")
-
-        def gui_update():
-            if message_id != "statusCode":
-                # clear display and switch frames
-                for widget in frame.winfo_children():
-                    widget.place_forget()
-
-                bind_presses(root, frame, style, True)
-
-                display_post_interaction(root, frame, style, do_post)
-
-                with pending_message_ids_lock:
-                    pending_message_ids.append(message_id)
-                message_to_channel[message_id] = channel_id
-
-                if is_simpleaudio_installed:
-                    try:
-                        INTERACT_SOUND.play()
-                        tsprint("Played interact sound.")
-                    except Exception as e:
-                        tsprint(f"ERROR: Could not play interact sound:\n{e}")
-            elif do_post:
-                ratelimit_label = ttk.Label(frame, text="Rate limit applied. Please wait before tapping again.",
-                                            style="Escape.TLabel")
-                ratelimit_label.place(relx=0.5, rely=0.99, anchor="s")
-                if is_simpleaudio_installed:
-                    try:
-                        RATELIMIT_SOUND.play()
-                        tsprint("Played rate limit sound.")
-                    except Exception as e:
-                        tsprint(f"ERROR: Could not play rate limit sound:\n{e}")
-                root.after(3 * 1000, fade_label, root,
-                           ratelimit_label, hex_to_rgb(MAIZE), hex_to_rgb(BLUE), 0, 1500)
-
-        root.after(0, gui_update)
 
     threading.Thread(target=worker, daemon=True).start()
 
@@ -667,8 +673,5 @@ if __name__ == "__main__":
             raise ImportError() # can't import properly
     except ImportError:
         tsprint("WARNING: simpleaudio not installed, audio will not play.")
-
-    # in main so that it happens after create_logfile
-    from . import slack
 
     display_gui()
