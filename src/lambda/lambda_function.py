@@ -314,11 +314,19 @@ def get_message_content(channel_id: str, message_id: str) -> str:
     :return: the content of the message
     :rtype: str
     """
+    print(f"Getting message contents for {message_id} in {channel_id}")
     # check the cache first, to skip API calls if we can
     cached_channel = CHANNEL_AND_MESSAGE_ID_TO_CONTENT.get(channel_id)
     if cached_channel:
+        print(f"Channel has a message cache. Checking for message.")
         cached_content = cached_channel.get(message_id)
-        return cached_content
+
+        # if the cached content is not None, return it
+        if cached_content:
+            print("Message content found. Using cached content.")
+            return cached_content
+        else:
+            print("Message content not found. Falling back on Slack API.")
 
     url = "https://slack.com/api/conversations.history"
     params = {
