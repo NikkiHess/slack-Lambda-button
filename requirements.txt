@@ -13,3 +13,6 @@ google-api-python-client
 
 # aws
 boto3
+
+# local environment variables
+py-dotenv
