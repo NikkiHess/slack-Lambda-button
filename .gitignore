@@ -2,6 +2,7 @@
 config_old/
 logs/
 package/
+*.DS_Store*
 # config and oauth have their own gitignores
 
 # STANDARD PYTHON GITIGNORE
