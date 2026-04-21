@@ -16,7 +16,7 @@ import traceback
 # PyPi
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
-from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -29,7 +29,7 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 CACHE = {}
 CACHE_COOLDOWN = 60 * 60 # 60 minutes in seconds
 
-def do_oauth_flow() -> Credentials:
+def get_service_account_credentials() -> service_account.Credentials:
 	"""
 	Log a user in and return the credentials needed
 
@@ -37,44 +37,14 @@ def do_oauth_flow() -> Credentials:
 	:rtype: Credentials
 	"""
 
-	tsprint("Starting Google OAuth flow.")
-	creds = None
+	with open("oauth/service_account_credentials.json") as jai_file:
+		json_account_info = json.load(jai_file)
+	credentials = service_account.Credentials.from_service_account_info(
+		json_account_info
+	)
+	scoped_credentials = credentials.with_scopes(SCOPES)
 
-	if os.path.exists("oauth/google_token.json"):
-		try:
-			creds = Credentials.from_authorized_user_file("oauth/google_token.json", SCOPES)
-		except (ValueError, json.JSONDecodeError):
-			pass # just don't get creds
-	
-	# If there are no (valid) credentials available, let the user log in.
-	if not creds or not creds.valid:
-		if creds and creds.expired and creds.refresh_token:
-			try:
-				creds.refresh(Request())
-				tsprint("Google Cloud token refreshed.")
-			except RefreshError: # google RefreshError, need new token
-				tsprint("New Google Cloud token needed, running OAuth flow.")
-
-				os.remove("oauth/google_token.json") # clear expired token
-				flow = InstalledAppFlow.from_client_secrets_file(
-					"oauth/google_credentials.json", SCOPES
-				)
-				creds = flow.run_local_server(port=0)
-		else:
-			tsprint("New Google Cloud token needed, running OAuth flow.")
-
-			flow = InstalledAppFlow.from_client_secrets_file(
-				"oauth/google_credentials.json", SCOPES
-			)
-			creds = flow.run_local_server(port=0)
-		
-		# Save the credentials for the next run
-		with open("oauth/google_token.json", "w", encoding="utf8") as token:
-			tsprint("Writing new token to file.")
-			token.write(creds.to_json())
-
-	tsprint("Google Cloud OAuth flow complete.")
-	return creds
+	return scoped_credentials
 
 def create_spreadsheet(sheets_service, name: str = "Untitled") -> dict:
 	"""
@@ -443,7 +413,7 @@ def setup_sheets():
 	tsprint("Setting up Google Sheets.")
 
 	# Log in using OAuth
-	creds = do_oauth_flow()
+	creds = get_service_account_credentials()
 
 	# verify that Google credentials file exists
 	config.get_and_verify_config_data("oauth/google_credentials.json", False)

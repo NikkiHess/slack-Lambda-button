@@ -1,4 +1,4 @@
-# general libraries
+ç# general libraries
 requests
 pillow
 simpleaudio
