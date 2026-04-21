@@ -393,9 +393,9 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
                             "Resolved"
                         ]
 
-                        if sheets_button_config["function"] != "Development":
+                        if sheets_button_config["function"].strip() != "Development":
                             threading.Thread(
-                                target=sheets.add_row, 
+                                target=sheets.add_row,
                                 args = (
                                     SHEETS_SERVICE, 
                                     SHEETS_SPREADSHEET_ID,
@@ -430,7 +430,7 @@ def display_post_interaction(root: tk.Tk, frame: tk.Frame, style: ttk.Style, do_
             ]
 
             # if we're using a non-development button, log
-            if sheets_button_config["function"] != "Development":
+            if sheets_button_config["function"].strip() != "Development":
                 threading.Thread(
                     target=sheets.add_row, 
                     args = (
