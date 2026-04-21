@@ -7,8 +7,12 @@ Author:
 Nikki Hess (nkhess@umich.edu)
 """
 
+# built-in modules
+import time
 import json
 import requests
+
+# pip modules
 import boto3
 
 # Read the configuration files
@@ -67,6 +71,9 @@ REQUESTS_SESSION.headers.update({
     "Authorization": f"Bearer {BOT_OAUTH_TOKEN}",
     "Content-Type": "application/json; charset=utf-8"
 })
+
+LAMBDA_RATE_LIMIT = 60 # can only post every 60 seconds
+last_pressed_dict = {}
 
 # cache
 USER_ID_TO_FIRST_NAME = {}
@@ -419,6 +426,22 @@ def post_to_slack(channel_id: str, message: str, device_id: str, location: str):
         "channel": channel_id,
         "text": message
     }
+
+    now = time.time()
+    # check if the button has been pressed this Lambda run
+    if device_id in last_pressed_dict:
+        last_pressed = last_pressed_dict[device_id]
+        print("last pressed: " + str(last_pressed))
+        print("gap: " + str(now - last_pressed))
+        print("rate limit: " + str(LAMBDA_RATE_LIMIT))
+
+        # return invalid data on rate limit, that way if this is sent to a device
+        # that can handle this information, it will discard it (theoretically)
+        if now - last_pressed < LAMBDA_RATE_LIMIT:
+            return -1, -1
+    
+    # if the button doesn't exist in last pressed or we didn't hit the rate limit, update the last pressed time
+    last_pressed_dict[device_id] = now
 
     # 10 second timeout
     post_response = REQUESTS_SESSION.post(url, json=payload, timeout=5)
