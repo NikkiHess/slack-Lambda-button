@@ -16,6 +16,7 @@ from tkinter import ttk
 import tkinter.font as tkFont
 import re
 import sys
+import traceback
 
 # my modules
 from . import process
@@ -642,36 +643,41 @@ def display_gui() -> None:
     root.mainloop()
 
 if __name__ == "__main__":
-    # set logfile name before any tsprint calls occur (otherwise defaults to program.log)
-    now = datetime.now()
-    now = now.strftime("%Y-%m-%d %X")
-    now = re.sub(r"\/|:", "-", now)
-    set_log_file(f"logs/{now}.log")
-
-    tsprint("Starting slack-Lambda-button gui.")
-    process.set_process_name_linux()
-    
-    _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets()
-    SHEETS_SERVICE = sheets_service
-    SHEETS_SPREADSHEET_ID = spreadsheet_id
-    SHEETS_TABS = tabs
-
-    # simpleaudio setup, in main so that it happens after create_logfile and cleans up code a bit
     try:
-        # MacOS does NOT like simpleaudio
-        # neither does Windows :/
-        # TODO: is there a better solution?
-        if sys.platform != "darwin":
-            import simpleaudio as saudio
-            INTERACT_SOUND = saudio.WaveObject.from_wave_file("audio/send.wav")
-            RECEIVE_SOUND = saudio.WaveObject.from_wave_file("audio/receive.wav")
-            RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
-            RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
-            is_simpleaudio_installed = True
-            tsprint("simpleaudio loaded successfully.")
-        else:
-            raise ImportError() # can't import properly
-    except ImportError:
-        tsprint("WARNING: simpleaudio not installed, audio will not play.")
+        # set logfile name before any tsprint calls occur (otherwise defaults to program.log)
+        now = datetime.now()
+        now = now.strftime("%Y-%m-%d %X")
+        now = re.sub(r"\/|:", "-", now)
 
-    display_gui()
+        log_name = f"logs/{now}.log"
+        set_log_file(log_name)
+
+        tsprint("Starting slack-Lambda-button gui.")
+        process.set_process_name_linux()
+        
+        _, sheets_service, _, spreadsheet_id, tabs = sheets.setup_sheets()
+        SHEETS_SERVICE = sheets_service
+        SHEETS_SPREADSHEET_ID = spreadsheet_id
+        SHEETS_TABS = tabs
+
+        # simpleaudio setup, in main so that it happens after create_logfile and cleans up code a bit
+        try:
+            # MacOS does NOT like simpleaudio
+            # neither does Windows :/
+            # TODO: is there a better solution?
+            if sys.platform != "darwin":
+                import simpleaudio as saudio
+                INTERACT_SOUND = saudio.WaveObject.from_wave_file("audio/send.wav")
+                RECEIVE_SOUND = saudio.WaveObject.from_wave_file("audio/receive.wav")
+                RATELIMIT_SOUND = saudio.WaveObject.from_wave_file("audio/ratelimit.wav")
+                RESOLVED_SOUND = saudio.WaveObject.from_wave_file("audio/resolved.wav")
+                is_simpleaudio_installed = True
+                tsprint("simpleaudio loaded successfully.")
+            else:
+                raise ImportError() # can't import properly
+        except ImportError:
+            tsprint("WARNING: simpleaudio not installed, audio will not play.")
+
+        display_gui()
+    except Exception:
+        tsprint(traceback.format_exc())
