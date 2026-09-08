@@ -684,9 +684,9 @@ if __name__ == "__main__":
             break
         except Exception:
             tsprint(traceback.format_exc())
-            tsprint(f"There was a problem running the program. Please see the traceback above for details. Retrying in 30 seconds.")
+            tsprint(f"There was a problem running the program. Please see the traceback above for details. Retrying in 5 seconds.")
 
-            time.sleep(30)
+            time.sleep(5)
 
             continue
         
