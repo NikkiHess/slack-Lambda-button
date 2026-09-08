@@ -648,7 +648,7 @@ if __name__ == "__main__":
         try:
             # set logfile name before any tsprint calls occur (otherwise defaults to program.log)
             now = datetime.now()
-            now = now.strftime("%Y-%m-%d %X")
+            now = now.strftime("%Y-%m-%d")
             now = re.sub(r"\/|:", "-", now)
 
             log_name = f"logs/{now}.log"
@@ -689,4 +689,3 @@ if __name__ == "__main__":
             time.sleep(5)
 
             continue
-        
